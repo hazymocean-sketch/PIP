@@ -19,7 +19,8 @@ Migrations and base configuration run **automatically on every Vercel deploy** (
 ## 3. Vercel (hosting)
 1. Sign up at vercel.com with the same GitHub account → Add New → Project → import `pip`.
 2. Before deploying, add these Environment Variables:
-   - `DATABASE_URL`: the Supabase Session pooler URI
+   - `DATABASE_URL`: the Supabase Session pooler link, pasted exactly as copied (leave `[YOUR-PASSWORD]` in it)
+   - `DATABASE_PASSWORD`: your Supabase database password (symbols are fine)
    - `SESSION_SECRET`: a random string of 48+ characters
    - `SETUP_TOKEN`: a random string of 16+ characters (used once)
    - `CRON_SECRET`: a random string

@@ -53,3 +53,17 @@ describe("approval policy", () => {
     expect(requiresApproval(TOOLS.send_email, "autonomous", 2, 2)).toBe(true);
   });
 });
+
+import { resolveDatabaseUrl } from "@/db";
+describe("database url", () => {
+  const base = "postgresql://postgres.abc:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+  it("inserts and encodes a separate password", () => {
+    expect(resolveDatabaseUrl(base, "p@ss#w/rd?")).toBe("postgresql://postgres.abc:p%40ss%23w%2Frd%3F@aws-0-eu-central-1.pooler.supabase.com:5432/postgres");
+  });
+  it("replaces an existing password and trims whitespace", () => {
+    expect(resolveDatabaseUrl(" postgresql://postgres.abc:old@h:5432/postgres ", "New1")).toBe("postgresql://postgres.abc:New1@h:5432/postgres");
+  });
+  it("explains a leftover placeholder", () => {
+    expect(() => resolveDatabaseUrl(base, undefined)).toThrow(/DATABASE_PASSWORD/);
+  });
+});
