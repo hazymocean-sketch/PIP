@@ -1,0 +1,55 @@
+import { describe, expect, it } from "vitest";
+import { normalizeName, normalizeUrl } from "@/lib/normalize";
+import { computeScore } from "@/lib/scoring";
+import { evaluate, nextScheduledRun } from "@/server/workflows/engine";
+import { requiresApproval } from "@/server/agents/policy";
+import { TOOLS } from "@/server/agents/tools";
+
+describe("normalisation", () => {
+  it("normalises names for duplicate detection", () => {
+    expect(normalizeName("The Ritz-Carlton, Ras Al Khaimah")).toBe("ritz carlton ras al khaimah");
+    expect(normalizeName("Café & Bar LLC")).toBe("cafe and bar");
+  });
+  it("normalises URLs (www, tracking params, trailing slash)", () => {
+    expect(normalizeUrl("https://www.Example.com/news/a/?utm_source=x&id=2")).toBe("example.com/news/a?id=2");
+    expect(normalizeUrl("example.com/news/a")).toBe("example.com/news/a");
+  });
+});
+
+describe("scoring", () => {
+  it("weights and normalises to 0–100", () => {
+    const f = [{ key: "a", label: "A", weight: 3 }, { key: "b", label: "B", weight: 1 }];
+    expect(computeScore(f, { a: 5, b: 5 }).score).toBe(100);
+    expect(computeScore(f, { a: 5, b: 0 }).score).toBe(75);
+    expect(computeScore(f, {}).ratedCount).toBe(0);
+  });
+});
+
+describe("workflow conditions & schedules", () => {
+  it("evaluates conditions", () => {
+    expect(evaluate({ field: "priority", op: "in", value: ["high", "urgent"] }, { priority: "high" })).toBe(true);
+    expect(evaluate({ field: "x", op: "exists", value: null }, {})).toBe(false);
+    expect(evaluate({ field: "n", op: "gte", value: 3 }, { n: 4 })).toBe(true);
+  });
+  it("computes next run times", () => {
+    const from = new Date("2026-11-23T09:00:00");
+    expect(nextScheduledRun({ every: "day", at: "08:00" }, from)!.getDate()).toBe(24);
+    expect(nextScheduledRun({ every: "week", weekday: 1, at: "10:00" }, from)!.getDate()).toBe(23);
+  });
+});
+
+describe("approval policy", () => {
+  it("assist mode gates every consequential tool", () => {
+    expect(requiresApproval(TOOLS.create_task, "assist", 0, 0)).toBe(true);
+    expect(requiresApproval(TOOLS.search_records, "assist", 0, 0)).toBe(false);
+  });
+  it("automate mode allows internal, gates external", () => {
+    expect(requiresApproval(TOOLS.create_task, "automate", 0, 0)).toBe(false);
+    expect(requiresApproval(TOOLS.send_email, "automate", 0, 0)).toBe(true);
+  });
+  it("autonomous mode respects explicit limits", () => {
+    expect(requiresApproval(TOOLS.send_email, "autonomous", 0, 0)).toBe(true);
+    expect(requiresApproval(TOOLS.send_email, "autonomous", 0, 2)).toBe(false);
+    expect(requiresApproval(TOOLS.send_email, "autonomous", 2, 2)).toBe(true);
+  });
+});

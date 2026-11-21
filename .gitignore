@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+backups/
+*.log
+tsconfig.tsbuildinfo
+next-env.d.ts
+test-artifacts/
