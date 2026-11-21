@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const open = pathname.startsWith("/login") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/cron") || pathname.startsWith("/_next") || pathname === "/favicon.ico";
+  const open = pathname.startsWith("/login") || pathname.startsWith("/setup") || pathname.startsWith("/api/setup") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/cron") || pathname.startsWith("/_next") || pathname === "/favicon.ico";
   if (open) return NextResponse.next();
   if (!req.cookies.get("pip_session")) {
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

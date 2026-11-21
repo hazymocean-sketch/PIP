@@ -16,7 +16,8 @@
     "backup": "bash scripts/backup.sh",
     "test": "vitest run",
     "test:e2e": "node tests/e2e.mjs",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "vercel-build": "tsx scripts/migrate.ts && next build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

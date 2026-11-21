@@ -22,7 +22,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
             <button className="btn primary" type="submit">Sign in</button>
           </form>
         </div></div>
-        <p className="muted small" style={{ textAlign: "center", marginTop: 14 }}>No public registration. The administrator account is created with <code>npm run admin:set</code>.</p>
+        <p className="muted small" style={{ textAlign: "center", marginTop: 14 }}>No public registration. First run? Visit <a className="link" href="/setup">/setup</a>.</p>
       </div>
     </div>
   );
