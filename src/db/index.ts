@@ -19,8 +19,22 @@ export function resolveDatabaseUrl(rawUrl = process.env.DATABASE_URL, password =
     else url = url.replace(/^(postgres(?:ql)?:\/\/[^:@/]+):[^@]*@/, `$1:${enc}@`).replace(/^(postgres(?:ql)?:\/\/[^:@/]+)@/, `$1:${enc}@`);
   }
   if (url.includes("[YOUR-PASSWORD]")) throw new Error("DATABASE_URL still contains [YOUR-PASSWORD] — set DATABASE_PASSWORD or replace it");
-  try { new URL(url); } catch { throw new Error("DATABASE_URL is not a valid link. Paste the Supabase Session pooler link exactly and put the password in DATABASE_PASSWORD."); }
+  try { new URL(url); } catch { throw new Error(`DATABASE_URL is not a valid link (${describeUrl(rawUrl)}). Paste the Supabase Session pooler link exactly and put the password in DATABASE_PASSWORD.`); }
   return url;
+}
+
+/** Safe, secret-free description of a connection string's shape, for build logs. */
+export function describeUrl(raw: string) {
+  const v = raw.trim();
+  const scheme = (v.match(/^([a-z]+):\/\//i)?.[1] ?? "none");
+  const host = v.split("@").pop()?.split("/")[0]?.replace(/:[0-9]+$/, "") ?? "";
+  const user = v.match(/^[a-z]+:\/\/([^:@/]+)/i)?.[1] ?? "";
+  return [
+    `length ${v.length}`, `scheme "${scheme}"`, `@ signs ${(v.match(/@/g) ?? []).length}`,
+    `host "${/supabase|localhost|amazonaws/.test(host) ? host : host ? "(other)" : "(none)"}"`,
+    `user "${user.startsWith("postgres") ? user : user ? "(other)" : "(none)"}"`,
+    `has spaces ${/\s/.test(v)}`, `has brackets ${/[\[\]]/.test(v)}`, `starts with "${v.slice(0, 6).replace(/[^a-z:/ ]/gi, "?")}"`,
+  ].join(", ");
 }
 
 function makePool() {
