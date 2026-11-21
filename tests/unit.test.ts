@@ -67,3 +67,8 @@ describe("database url", () => {
     expect(() => resolveDatabaseUrl(base, undefined)).toThrow(/DATABASE_PASSWORD/);
   });
 });
+describe("supabase placeholder variants", () => {
+  it("handles [YOUR-DATABASE-PASSWORD]", () => {
+    expect(resolveDatabaseUrl("postgresql://postgres.x:[YOUR-DATABASE-PASSWORD]@h.pooler.supabase.com:5432/postgres", "a@b")).toBe("postgresql://postgres.x:a%40b@h.pooler.supabase.com:5432/postgres");
+  });
+});

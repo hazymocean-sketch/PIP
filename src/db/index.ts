@@ -15,10 +15,10 @@ export function resolveDatabaseUrl(rawUrl = process.env.DATABASE_URL, password =
   const pw = password?.trim();
   if (pw) {
     const enc = encodeURIComponent(pw);
-    if (url.includes("[YOUR-PASSWORD]")) url = url.replace("[YOUR-PASSWORD]", enc);
+    if (/\[YOUR-[A-Z-]*PASSWORD\]/i.test(url)) url = url.replace(/\[YOUR-[A-Z-]*PASSWORD\]/i, enc);
     else url = url.replace(/^(postgres(?:ql)?:\/\/[^:@/]+):[^@]*@/, `$1:${enc}@`).replace(/^(postgres(?:ql)?:\/\/[^:@/]+)@/, `$1:${enc}@`);
   }
-  if (url.includes("[YOUR-PASSWORD]")) throw new Error("DATABASE_URL still contains [YOUR-PASSWORD] — set DATABASE_PASSWORD or replace it");
+  if (/\[YOUR-[A-Z-]*PASSWORD\]/i.test(url)) throw new Error("DATABASE_URL still contains [YOUR-PASSWORD] — set DATABASE_PASSWORD or replace it");
   try { new URL(url); } catch { throw new Error(`DATABASE_URL is not a valid link (${describeUrl(rawUrl)}). Paste the Supabase Session pooler link exactly and put the password in DATABASE_PASSWORD.`); }
   return url;
 }
