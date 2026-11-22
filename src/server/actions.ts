@@ -12,7 +12,7 @@ import * as S from "@/db/schema";
 import * as form from "@/lib/form";
 import * as C from "@/lib/constants";
 import { computeScore } from "@/lib/scoring";
-import { slugify } from "@/lib/normalize";
+import { isUuid, slugify } from "@/lib/normalize";
 import { SOURCE_FIELDS } from "@/lib/fields";
 import { requireAdmin, SESSION_COOKIE } from "./auth";
 import { authCore } from "./auth-core";
@@ -477,10 +477,20 @@ export async function loadDemoData() {
 
 /* ───────────── Lusha decision-makers ───────────── */
 
+/** Lusha panel lives on projects (pipeline) and opportunities (execution); return to whichever page it was used on. */
+async function lushaBack(projectId: string, fd: FormData) {
+  const opp = fd.get("_opportunityId");
+  if (typeof opp === "string" && isUuid(opp)) {
+    const [o] = await db.select({ id: S.opportunities.id, projectId: S.opportunities.projectId }).from(S.opportunities).where(eq(S.opportunities.id, opp));
+    if (o && o.projectId === projectId) return { back: `/opportunities/${o.id}#decision-makers`, opportunityId: o.id };
+  }
+  return { back: `/projects/${projectId}#decision-makers`, opportunityId: undefined };
+}
+
 export async function findDecisionMakersAction(projectId: string, fd: FormData) {
   await requireAdmin();
   const { findDecisionMakers } = await import("./lusha");
-  const back = `/projects/${projectId}#decision-makers`;
+  const { back } = await lushaBack(projectId, fd);
   let msg: string; let ok = true;
   try {
     const r = await findDecisionMakers(projectId, { companyIds: form.uuids(fd, "companyId") });
@@ -495,14 +505,14 @@ export async function findDecisionMakersAction(projectId: string, fd: FormData) 
 export async function revealContactsAction(projectId: string, fd: FormData) {
   await requireAdmin();
   const ids = form.uuids(fd, "candidateId");
-  const back = `/projects/${projectId}#decision-makers`;
+  const { back, opportunityId } = await lushaBack(projectId, fd);
   if (!ids.length) redirect(withFlash(back, "error", "Tick at least one person to reveal"));
   const { dismissCandidates, revealCandidates } = await import("./lusha");
   if (fd.get("intent") === "dismiss") { await dismissCandidates(projectId, ids); redirect(withFlash(back, "ok", `${ids.length} removed from suggestions`)); }
   let msg: string; let ok = true;
   try {
-    const r = await revealCandidates(projectId, ids);
-    msg = `${r.revealed} contact(s) saved to the project · ${r.withPhone} with phone · ${r.withEmail} with email${r.credits ? ` · ${r.credits} Lusha credits used` : ""}${r.lowBalance ? " · Lusha balance is low" : ""}${r.errors.length ? ` · ${r.errors.length} not found` : ""}`;
+    const r = await revealCandidates(projectId, ids, { opportunityId });
+    msg = `${r.revealed} contact(s) saved${opportunityId ? " to the project and this opportunity" : " to the project"} · ${r.withPhone} with phone · ${r.withEmail} with email${r.credits ? ` · ${r.credits} Lusha credits used` : ""}${r.lowBalance ? " · Lusha balance is low" : ""}${r.errors.length ? ` · ${r.errors.length} not found` : ""}`;
     ok = r.revealed > 0;
   } catch (e) { ok = false; msg = (e as Error).message; }
   redirect(withFlash(back, ok ? "ok" : "error", msg));

@@ -11,6 +11,7 @@ import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/compon
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val, fmtDate, fmtMoney } from "@/components/ui";
 import { Submit } from "@/components/client";
 import { Icon } from "@/components/icons";
+import { DecisionMakers } from "@/components/decision-makers";
 
 export default async function OppPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
@@ -37,10 +38,12 @@ export default async function OppPage({ params, searchParams }: { params: Promis
         <dt>Next action</dt><dd><Val v={o.nextAction} unknown="None set" /></dd><dt>Follow-up</dt><dd><Val v={fmtDate(o.followUpDate)} unknown="Not scheduled" /></dd>
         <dt>Decision-makers (to identify)</dt><dd className="pre"><Val v={o.decisionMakers} unknown="—" /></dd><dt>Notes</dt><dd className="pre"><Val v={o.notes} unknown="—" /></dd>
       </dl></Card>
+      {p ? <DecisionMakers projectId={p.id} opportunityId={id} />
+        : <Card id="decision-makers" title="Find decision-makers"><div className="card-b"><div className="notice">Link this opportunity to a project (Edit → Project) to search Lusha for decision-makers. Lusha and LinkedIn only work on pipeline projects.</div></div></Card>}
       <SourcesPanel target={{ opportunityId: id }} back={back} />
       <ActivitiesPanel where={eq(S.activities.opportunityId, id)} newHref={`/activities/new?opportunityId=${id}`} />
     </div><div className="stack">
-      <Card title="Decision-makers" sub="Verified contacts linked to this opportunity" tight>
+      <Card title="Contacts on this deal" sub="Verified contacts linked to this opportunity. People you reveal with Lusha are added here automatically." tight>
         {dms.length ? <div className="list">{dms.map((c) => <div key={c.id} className="li"><div className="grow"><Link className="ttl link" href={`/contacts/${c.id}`}>{c.full_name}</Link><div className="meta">{[c.position, c.company].filter(Boolean).join(" · ")}{c.email ? "" : " · no email on file"}</div></div>
           <form action={removeOpportunityContact.bind(null, id, c.id)}><button className="btn ghost sm">×</button></form></div>)}</div> : <Empty title="None linked" />}
         <form action={addOpportunityContact.bind(null, id)} className="row" style={{ padding: "10px 16px", borderTop: "1px solid var(--line)" }}>

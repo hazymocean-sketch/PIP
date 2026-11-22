@@ -9,7 +9,8 @@ import { Icon } from "./icons";
 
 const ROLE = (r: string | null) => (r ? r.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : "Company");
 
-export async function DecisionMakers({ projectId }: { projectId: string }) {
+export async function DecisionMakers({ projectId, opportunityId }: { projectId: string; opportunityId?: string }) {
+  const ctx = opportunityId ? <input type="hidden" name="_opportunityId" value={opportunityId} /> : null;
   const configured = lushaConfigured();
   const linked = (await db.execute(sql`select distinct c.id, c.name, pc.role from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${projectId} order by c.name`)).rows as { id: string; name: string; role: string }[];
   const cands = await db.select().from(contactCandidates).where(and(eq(contactCandidates.projectId, projectId), eq(contactCandidates.status, "suggested"))).orderBy(contactCandidates.companyName);
@@ -21,7 +22,7 @@ export async function DecisionMakers({ projectId }: { projectId: string }) {
       actions={configured ? <span className="badge good">Lusha connected</span> : <span className="badge outline">Lusha not connected</span>} tight>
       {!configured ? <div className="card-b"><div className="notice">Add <code>LUSHA_API_KEY</code> in Vercel to enable decision-maker lookups.</div></div> : (
         <>
-          <form action={findDecisionMakersAction.bind(null, projectId)} className="card-b stack" style={{ gap: 10 }}>
+          <form action={findDecisionMakersAction.bind(null, projectId)} className="card-b stack" style={{ gap: 10 }}>{ctx}
             {linked.length ? (
               <>
                 <span className="lbl-s">Search these companies <Hint text="Untick any company you don't want to search. Adding a company's website improves matching (Lusha matches exact domains best)." /></span>
@@ -34,7 +35,7 @@ export async function DecisionMakers({ projectId }: { projectId: string }) {
             ) : <div className="notice">Link at least one stakeholder company (developer, contractor, consultant, interior designer…) under <b>Stakeholder companies</b>, then come back here.</div>}
           </form>
           {cands.length ? (
-            <form action={revealContactsAction.bind(null, projectId)}>
+            <form action={revealContactsAction.bind(null, projectId)}>{ctx}
               {groups.map((g) => (
                 <div key={g}>
                   <div className="lbl-s" style={{ padding: "12px 16px 6px", borderTop: "1px solid var(--glass-line)" }}>{g} · {ROLE(cands.find((c) => (c.companyName ?? "Unknown company") === g)?.companyRole ?? null)}</div>
@@ -60,7 +61,7 @@ export async function DecisionMakers({ projectId }: { projectId: string }) {
               <div className="row" style={{ padding: "12px 16px", borderTop: "1px solid var(--glass-line)" }}>
                 <Submit className="btn primary" name="intent" value="reveal" pendingText="Revealing…"><Icon name="check" />Reveal email &amp; phone</Submit>
                 <Submit className="btn ghost" name="intent" value="dismiss" pendingText="Removing…">Remove from list</Submit>
-                <Hint text="Only the people you tick are revealed. Revealed contacts appear under People on this project and in Network → Contacts, with their source marked as Lusha." />
+                <Hint text={`Only the people you tick are revealed. Revealed contacts appear under People on the project${opportunityId ? ", on this opportunity" : ""} and in Network → Contacts, with their source marked as Lusha.`} />
               </div>
             </form>
           ) : <Empty title="No suggestions yet">Click Find decision-makers to search Lusha.</Empty>}

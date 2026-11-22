@@ -14,7 +14,7 @@
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contactCandidates, contacts, projectContacts, projects } from "@/db/schema";
+import { contactCandidates, contacts, projectContacts, projects, opportunityContacts } from "@/db/schema";
 import { notify } from "./core";
 
 const BASE = "https://api.lusha.com";
@@ -135,7 +135,7 @@ export async function findDecisionMakers(projectId: string, opts: { companyIds?:
 }
 
 /** Step 2 — reveal emails/phones for chosen candidates and save them as contacts on the project. */
-export async function revealCandidates(projectId: string, candidateIds: string[]) {
+export async function revealCandidates(projectId: string, candidateIds: string[], opts: { opportunityId?: string } = {}) {
   const cands = await db.select().from(contactCandidates)
     .where(and(eq(contactCandidates.projectId, projectId), inArray(contactCandidates.id, candidateIds), eq(contactCandidates.status, "suggested")));
   if (!cands.length) return { revealed: 0, withPhone: 0, withEmail: 0, credits: 0, errors: [] as string[], lowBalance: false };
@@ -175,6 +175,7 @@ export async function revealCandidates(projectId: string, candidateIds: string[]
       ? (await db.update(contacts).set(values).where(eq(contacts.id, existing.id)).returning({ id: contacts.id }))[0].id
       : (await db.insert(contacts).values(values).returning({ id: contacts.id }))[0].id;
     await db.insert(projectContacts).values({ projectId, contactId, role: [labelRole(c.companyRole), x.jobTitle?.title ?? c.jobTitle].filter(Boolean).join(" · ").slice(0, 200) }).onConflictDoNothing();
+    if (opts.opportunityId) await db.insert(opportunityContacts).values({ opportunityId: opts.opportunityId, contactId }).onConflictDoNothing();
     await db.update(contactCandidates).set({ status: "revealed", contactId }).where(eq(contactCandidates.id, c.id));
     revealed++; if (values.phone) withPhone++; if (values.email) withEmail++;
   }

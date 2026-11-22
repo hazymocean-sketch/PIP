@@ -72,6 +72,8 @@ const SCHEDULED_TEMPLATES = [
             { type: "run_agent" as const, config: { agentKey: "business_development", instruction: "Route new discoveries" } }] },
 ];
 
+const LEGACY_RESEARCH_INSTRUCTIONS = "For a project: assess gaps, open a structured research session, run targeted searches, propose a Lusha decision-maker search for the stakeholder companies (needs approval — uses credits), and create research tasks for each unresolved question.";
+
 export async function seedBase() {
   for (const [i, v] of VENTURE_SEED.entries()) {
     const [existing] = await db.select().from(ventures).where(eq(ventures.slug, v.slug));
@@ -95,10 +97,10 @@ export async function seedBase() {
   for (const [i, a] of AGENT_DEFINITIONS.entries()) {
     await db.insert(agents).values({ ...a, sortOrder: i }).onConflictDoNothing();
   }
-  // Upgrade: make sure the Research agent can propose Lusha lookups (keeps any tools you added yourself)
+  // Upgrade: Lusha is pipeline/execution only — remove it from the Research agent (intelligence layer).
   const [research] = await db.select().from(agents).where(eq(agents.key, "research"));
-  if (research && !research.tools.includes("find_decision_makers")) {
-    await db.update(agents).set({ tools: [...research.tools, "find_decision_makers"] }).where(eq(agents.id, research.id));
+  if (research?.tools.includes("find_decision_makers")) {
+    await db.update(agents).set({ tools: research.tools.filter((t) => t !== "find_decision_makers"), ...(research.instructions === LEGACY_RESEARCH_INSTRUCTIONS ? { instructions: AGENT_DEFINITIONS.find((a) => a.key === "research")!.instructions } : {}) }).where(eq(agents.id, research.id));
   }
   for (const t of SCHEDULED_TEMPLATES) {
     const [exists] = await db.select({ id: workflows.id }).from(workflows).where(eq(workflows.name, t.name));

@@ -74,23 +74,40 @@ describe("Lusha decision-makers", () => {
     expect(r.found).toBe(0); expect(r.errors).toEqual([]);
   });
 
-  it("research agent proposes a Lusha search, which waits for approval", async () => {
+  it("research agent (intelligence layer) never proposes a Lusha search", async () => {
     const { db } = await import("@/db");
     const S = await import("@/db/schema");
     const { createRecord } = await import("@/server/entities");
-    const { startAgentRun, decideApproval } = await import("@/server/agents/runner");
+    const { startAgentRun } = await import("@/server/agents/runner");
     const { seedBase } = await import("@/server/seed");
     await seedBase();
+    const [agent] = await db.select().from(S.agents).where(eq(S.agents.key, "research"));
+    expect(agent.tools).not.toContain("find_decision_makers");
     const p = await createRecord("projects", { name: "Agent Lusha Hotel" });
     const c = await createRecord("companies", { name: "Agent Lusha Developer" });
     await db.insert(S.projectCompanies).values({ projectId: p.id, companyId: c.id, role: "developer" });
     const run = await startAgentRun({ agentKey: "research", instruction: "research", targetType: "project", targetId: p.id });
-    expect(run.status).toBe("awaiting_approval");
-    const [a] = await db.select().from(S.approvals).where(eq(S.approvals.agentRunId, run.runId));
-    expect(a.tool).toBe("find_decision_makers");
-    await decideApproval(a.id, "approved");
+    const approvals = await db.select().from(S.approvals).where(eq(S.approvals.agentRunId, run.runId));
+    expect(approvals.some((x) => x.tool === "find_decision_makers")).toBe(false);
     const cands = await db.select().from(S.contactCandidates).where(eq(S.contactCandidates.projectId, p.id));
-    expect(cands.length).toBe(2);
+    expect(cands.length).toBe(0);
+  });
+
+  it("revealing from an opportunity links the contact to the opportunity too", async () => {
+    const { db } = await import("@/db");
+    const S = await import("@/db/schema");
+    const { createRecord } = await import("@/server/entities");
+    const { findDecisionMakers, revealCandidates } = await import("@/server/lusha");
+    const p = await createRecord("projects", { name: "Opp Lusha Hotel" });
+    const c = await createRecord("companies", { name: "Opp Lusha Developer" });
+    await db.insert(S.projectCompanies).values({ projectId: p.id, companyId: c.id, role: "developer" });
+    const o = await createRecord("opportunities", { title: "Opp Lusha deal", projectId: p.id });
+    await findDecisionMakers(p.id);
+    const cands = await db.select().from(S.contactCandidates).where(eq(S.contactCandidates.projectId, p.id));
+    const r = await revealCandidates(p.id, [cands[0].id], { opportunityId: o.id });
+    expect(r.revealed).toBe(1);
+    const links = await db.select().from(S.opportunityContacts).where(eq(S.opportunityContacts.opportunityId, o.id));
+    expect(links.length).toBe(1);
   });
 
   it("saving a discovery links the reported developer as a company", async () => {
