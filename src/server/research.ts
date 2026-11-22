@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { discoveries, projectCompanies, projectVentures, projects, researchSessions, sectors, sources, companies } from "@/db/schema";
 import { getSearchProvider } from "@/server/ai/providers";
 import { emitEvent } from "./core";
-import { normalizeName, normalizeUrl } from "@/lib/normalize";
+import { normalizeName, normalizeUrl, sourceFromUrl, toIsoDate } from "@/lib/normalize";
 
 /** Possible duplicate projects for a name (trigram similarity + containment). */
 export async function findDuplicateProjects(name: string, excludeId?: string) {
@@ -81,19 +81,25 @@ export async function runDiscovery(params: { title: string; query: string | null
       try {
         const results = await provider.search(q, { maxResults: 8 });
         for (const r of results) {
-          const nu = normalizeUrl(r.url);
-          const dup = nu ? await db.select({ id: discoveries.id }).from(discoveries).where(eq(discoveries.normalizedUrl, nu)).limit(1) : [];
-          if (dup.length) { skipped++; continue; }
-          const [d] = await db.insert(discoveries).values({
-            researchSessionId: session.id, title: r.title, normalizedTitle: normalizeName(r.title), summary: r.snippet ?? null, url: r.url, normalizedUrl: nu,
-            sourceName: r.sourceName ?? null, publishedAt: r.publishedAt?.slice(0, 10) ?? null, sectorId: params.sectorId, location: params.location, infoStatus: "reported",
-          }).returning();
-          await emitEvent("discovery.created", "discovery", d.id, {});
-          created++;
+          try {
+            const nu = normalizeUrl(r.url);
+            const dup = nu ? await db.select({ id: discoveries.id }).from(discoveries).where(eq(discoveries.normalizedUrl, nu)).limit(1) : [];
+            if (dup.length) { skipped++; continue; }
+            const title = (r.title || r.url).slice(0, 500);
+            const [d] = await db.insert(discoveries).values({
+              researchSessionId: session.id, title, normalizedTitle: normalizeName(title), summary: r.snippet?.slice(0, 4000) ?? null, url: r.url, normalizedUrl: nu,
+              sourceName: r.sourceName ?? sourceFromUrl(r.url), publishedAt: toIsoDate(r.publishedAt), sectorId: params.sectorId, location: params.location, infoStatus: "reported",
+            }).returning();
+            await emitEvent("discovery.created", "discovery", d.id, {});
+            created++;
+          } catch (e) {
+            errors.push(`Could not save “${(r.title || r.url).slice(0, 60)}”: ${((e as Error).message || "").split("\n")[0].slice(0, 120)}`);
+          }
         }
-      } catch (e) { errors.push(`${q}: ${(e as Error).message}`); }
+      } catch (e) { errors.push(`Search “${q}” failed: ${((e as Error).message || "").slice(0, 160)}`); }
     }
-    await db.update(researchSessions).set({ status: errors.length && !created ? "failed" : "completed", report: errors.length ? `Errors:\n${errors.join("\n")}` : null, updatedAt: new Date() }).where(eq(researchSessions.id, session.id));
+    await db.update(researchSessions).set({ status: errors.length && !created ? "failed" : "completed",
+      report: `Automated search via ${provider.label}: ${created} new result(s) saved, ${skipped} duplicate(s) skipped.${errors.length ? `\n\nIssues (${errors.length}):\n${errors.join("\n")}` : ""}`, updatedAt: new Date() }).where(eq(researchSessions.id, session.id));
   }
   return { session, provider: provider?.id ?? null, created, skipped, errors };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeName, normalizeUrl } from "@/lib/normalize";
+import { normalizeName, normalizeUrl, toIsoDate, sourceFromUrl } from "@/lib/normalize";
 import { computeScore } from "@/lib/scoring";
 import { evaluate, nextScheduledRun } from "@/server/workflows/engine";
 import { requiresApproval } from "@/server/agents/policy";
@@ -71,5 +71,19 @@ describe("database url", () => {
 describe("supabase placeholder variants", () => {
   it("handles [YOUR-DATABASE-PASSWORD]", () => {
     expect(resolveDatabaseUrl("postgresql://postgres.x:[YOUR-DATABASE-PASSWORD]@h.pooler.supabase.com:5432/postgres", "a@b")).toBe("postgresql://postgres.x:a%40b@h.pooler.supabase.com:5432/postgres");
+  });
+});
+
+describe("search result parsing", () => {
+  it("parses provider date formats", () => {
+    expect(toIsoDate("Sat, 22 Nov 2026 10:00:00 GMT")).toBe("2026-11-22");
+    expect(toIsoDate("2026-11-21T08:30:00Z")).toBe("2026-11-21");
+    expect(toIsoDate("2026-11-20")).toBe("2026-11-20");
+    expect(toIsoDate("garbage")).toBeNull();
+    expect(toIsoDate(undefined)).toBeNull();
+  });
+  it("derives source names from URLs", () => {
+    expect(sourceFromUrl("https://www.hoteliermiddleeast.com/news/x")).toBe("hoteliermiddleeast.com");
+    expect(sourceFromUrl("not a url")).toBeNull();
   });
 });

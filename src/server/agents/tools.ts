@@ -17,7 +17,7 @@ import {
 } from "@/db/schema";
 import { getSearchProvider } from "@/server/ai/providers";
 import { addDays, notify, today } from "@/server/core";
-import { normalizeName, normalizeUrl } from "@/lib/normalize";
+import { normalizeName, normalizeUrl, sourceFromUrl, toIsoDate } from "@/lib/normalize";
 
 export type ToolContext = { runId: string; agentId: string; ventureId: string | null };
 export type ToolResult = { ok: boolean; simulated?: boolean; data?: unknown; message: string };
@@ -101,7 +101,7 @@ export const TOOLS: Record<string, ToolDef> = {
         if (existing.length) { skipped++; continue; }
         await db.insert(discoveries).values({
           title: r.title, normalizedTitle: normalizeName(r.title), summary: r.snippet ?? null, url: r.url, normalizedUrl: nu,
-          sourceName: r.sourceName ?? null, publishedAt: r.publishedAt?.slice(0, 10) ?? null, researchSessionId: sessionId ?? null,
+          sourceName: r.sourceName ?? sourceFromUrl(r.url), publishedAt: toIsoDate(r.publishedAt), researchSessionId: sessionId ?? null,
           infoStatus: "reported", aiGenerated: false, agentRunId: ctx.runId,
         });
         created++;

@@ -36,3 +36,21 @@ export function isHttpUrl(s: string): boolean {
 export function slugify(s: string) {
   return normalizeName(s).replace(/\s+/g, "-");
 }
+
+/** Any date-ish string (ISO, RFC 2822 "Sat, 22 Nov 2026 10:00:00 GMT", "2026-11-22T…") → "YYYY-MM-DD" or null. */
+export function toIsoDate(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getUTCFullYear();
+  if (y < 1990 || y > 2100) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+/** Readable source name from a URL: "www.hoteliermiddleeast.com/x" → "hoteliermiddleeast.com". */
+export function sourceFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return null; }
+}
