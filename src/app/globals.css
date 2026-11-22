@@ -403,3 +403,13 @@ details.start[open]::details-content { block-size: auto; }
   .start-list { padding-left: 16px; }
   .topbar { background: var(--glass-strong); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 }
+
+/* Compact dial grid (Today, beside Start here) */
+.dial-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.knob-stat.compact { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; min-height: 0; }
+.knob-stat.compact .knob-txt { gap: 7px; }
+.knob-stat.compact .knob-label { font-size: 9px; letter-spacing: .16em; line-height: 1.35; }
+.knob-stat.compact .row { min-height: 22px; }
+.knob-stat.compact .knob-head { display: flex; align-items: center; gap: 12px; }
+@media (max-width: 1100px) { .dial-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .dial-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .knob-stat.compact .knob { width: 62px; height: 62px; } }

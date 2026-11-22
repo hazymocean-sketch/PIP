@@ -123,17 +123,12 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
             </Link>
           )}
         </Card>
-        <div className="grid" style={{ gridTemplateColumns: "1fr" }}>
-          <KnobStat label="Projects" value={k.projects} ratio={dial(k.projects, 25)} href="/projects" hint="All projects tracked in PIP. The dial fills as your pipeline grows." />
-          <KnobStat label="Qualified opps" value={k.qualified} ratio={k.open_opps ? k.qualified / k.open_opps : 0} href="/opportunities" hint="Open opportunities marked Qualified. The dial shows the share of open opportunities that are qualified." sub={k.open_opps ? `of ${k.open_opps} open` : undefined} />
+        <div className="dial-grid">
+          <KnobStat compact label="New discoveries · 7 days" value={k.new_disc} ratio={dial(k.new_disc, 8)} href="/discoveries?status=all" hint="Potential projects found in the last 7 days, by you or by agents." />
+          <KnobStat compact label="Projects" value={k.projects} ratio={dial(k.projects, 25)} href="/projects" hint="All projects tracked in PIP. The dial fills as your pipeline grows." />
+          <KnobStat compact label="Discoveries to review" value={k.disc_review} ratio={dial(k.disc_review, 6)} href="/discoveries" hint="Finds waiting for your decision: save as project, link, flag or reject." />
+          <KnobStat compact label="Approvals waiting" value={k.approvals} ratio={dial(k.approvals, 4)} href="/command?tab=approvals" hint="Actions proposed by agents or workflows that need your yes or no." />
         </div>
-      </div>
-
-      <div className="grid knob-grid" style={{ marginBottom: 14 }}>
-        <KnobStat label="New · 7 days" value={k.new_disc} ratio={dial(k.new_disc, 8)} href="/discoveries" hint="Discoveries added in the last 7 days." />
-        <KnobStat label="Verified+" value={k.verified} ratio={k.projects ? k.verified / k.projects : 0} href="/projects?status=verified" hint="Projects at Verified, Qualified, Active opportunity or Won. The dial shows their share of all projects." />
-        <KnobStat label="To review" value={k.disc_review} ratio={dial(k.disc_review, 6)} href="/discoveries" hint="Discoveries waiting for your decision." />
-        <KnobStat label="Approvals" value={k.approvals} ratio={dial(k.approvals, 4)} href="/command?tab=approvals" hint="Actions proposed by agents or workflows waiting for you." />
       </div>
 
       {k.projects === 0 ? (

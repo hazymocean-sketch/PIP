@@ -84,16 +84,25 @@ export function Knob({ ratio, size = 92 }: { ratio: number; size?: number }) {
 /** Saturating ratio so small counts still move the dial. */
 export function dial(v: number, k = 10) { return v <= 0 ? 0 : 1 - Math.exp(-v / k); }
 
-export function KnobStat({ label, value, ratio, unit, href, hint, sub }: { label: string; value: number | string; ratio: number; unit?: string; href?: string; hint?: string; sub?: string }) {
-  const inner = (
+export function KnobStat({ label, value, ratio, unit, href, hint, sub, compact }: { label: string; value: number | string; ratio: number; unit?: string; href?: string; hint?: string; sub?: string; compact?: boolean }) {
+  const digits = <div className="row" style={{ gap: 6, alignItems: "flex-end", flexWrap: "nowrap" }}><DotDigits value={String(value)} dot={compact ? 3 : 4.2} gap={compact ? 1.4 : 1.9} />{unit ? <span className="knob-unit">{unit}</span> : null}</div>;
+  const labelEl = <div className="knob-label">{label}{hint ? <Hint text={hint} /> : null}</div>;
+  const inner = compact ? (
+    <>
+      <div className="knob-head"><Knob ratio={ratio} size={58} />{digits}</div>
+      {labelEl}
+      {sub ? <div className="knob-sub">{sub}</div> : null}
+    </>
+  ) : (
     <>
       <Knob ratio={ratio} />
       <div className="knob-txt">
-        <div className="row" style={{ gap: 6, alignItems: "flex-end", flexWrap: "nowrap" }}><DotDigits value={String(value)} />{unit ? <span className="knob-unit">{unit}</span> : null}</div>
-        <div className="knob-label">{label}{hint ? <Hint text={hint} /> : null}</div>
+        {digits}
+        {labelEl}
         {sub ? <div className="knob-sub">{sub}</div> : null}
       </div>
     </>
   );
-  return href ? <Link href={href} className="card knob-stat">{inner}</Link> : <div className="card knob-stat">{inner}</div>;
+  const cls = `card knob-stat${compact ? " compact" : ""}`;
+  return href ? <Link href={href} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
