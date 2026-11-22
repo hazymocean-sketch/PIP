@@ -9,7 +9,7 @@ import { addProjectCompany, addProjectContact, deleteEntity, removeProjectCompan
 import { findDuplicateProjects } from "@/server/research";
 import { refOptions } from "@/server/entities";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
-import { Badge, Card, DeleteForm, Demo, Empty, Flash, PageHead, Score, StatusBadge, Val, fmtDate, fmtMoney, Sim } from "@/components/ui";
+import { Badge, Card, DeleteForm, Demo, Empty, Flash, Hint, PageHead, Score, StatusBadge, Val, fmtDate, fmtMoney, Sim } from "@/components/ui";
 import { Submit } from "@/components/client";
 
 export default async function ProjectPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
@@ -104,7 +104,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         </div>
 
         <div className="stack">
-          <Card title="Relevant ventures" sub="Why this project matters to each business">
+          <Card title="Relevant ventures" sub="Tick every business this project could matter to, and note why (scope, package). One project can serve several ventures.">
             <form action={setProjectVentures.bind(null, id)} className="stack" style={{ gap: 10 }}>
               {ventures.map((v) => { const link = pv.find((x) => x.ventureId === v.id); return (
                 <div key={v.id} className="stack" style={{ gap: 4 }}>
@@ -115,11 +115,11 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
             </form>
           </Card>
 
-          <Card title="Opportunity score" sub="Transparent, weighted. Edit weights in Settings." id="score">
+          <Card title="Opportunity score" sub="Each factor is rated 0–5 and multiplied by its weight, then scaled to 100. Edit factors and weights in Settings → Research & scoring." id="score">
             <form action={saveScore.bind(null, id)} className="stack" style={{ gap: 8 }}>
               {score.rows.map((f) => (
                 <div key={f.key} className="row" style={{ justifyContent: "space-between" }} title={f.description ?? ""}>
-                  <span className="small">{f.label} <span className="faint">×{f.weight}</span></span>
+                  <span className="small row" style={{ gap: 6 }}>{f.label} <span className="faint">×{f.weight}</span>{f.description ? <Hint text={`${f.description} Rate 0–5; weight ×${f.weight}.`} /> : null}</span>
                   <select name={`f_${f.key}`} defaultValue={f.rated ? String(f.rating) : ""} style={{ width: 74 }}>
                     <option value="">–</option>{[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
@@ -142,8 +142,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
             </form>
           </Card>
 
-          <Card title="Danger zone"><DeleteForm action={deleteEntity.bind(null, "projects", id)} label="Delete project" back="/projects" />
-            <p className="muted small" style={{ marginTop: 8 }}>Opportunities and tasks are kept but unlinked. A full snapshot is stored in the audit log.</p></Card>
+          <Card title="Delete"><DeleteForm action={deleteEntity.bind(null, "projects", id)} label="Delete project" back="/projects" /> <Hint text="Opportunities and tasks are kept but unlinked. A full snapshot is stored in the audit log so it can be recovered." />
+            </Card>
         </div>
       </div>
     </>

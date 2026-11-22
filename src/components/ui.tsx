@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Hint } from "./client";
+export { Hint };
 import type { ReactNode } from "react";
 import * as C from "@/lib/constants";
 import { scoreBand } from "@/lib/scoring";
@@ -8,8 +10,8 @@ export function PageHead({ title, sub, crumbs, actions }: { title: ReactNode; su
     <div className="page-head">
       <div>
         {crumbs?.length ? <div className="crumbs">{crumbs.map((c, i) => <span key={c.href}>{i > 0 && " / "}<Link href={c.href}>{c.label}</Link></span>)}</div> : null}
-        <h1>{title}</h1>
-        {sub ? <p>{sub}</p> : null}
+        <div className="title-row"><h1>{title}</h1>{typeof sub === "string" ? <Hint text={sub} /> : null}</div>
+        {sub && typeof sub !== "string" ? <div className="meta">{sub}</div> : null}
       </div>
       {actions ? <div className="actions">{actions}</div> : null}
     </div>
@@ -26,14 +28,14 @@ export function Flash({ sp }: { sp: Record<string, string | string[] | undefined
 export function Card({ title, sub, actions, children, tight, id }: { title?: ReactNode; sub?: ReactNode; actions?: ReactNode; children: ReactNode; tight?: boolean; id?: string }) {
   return (
     <section className="card" id={id}>
-      {title || actions ? <div className="card-h"><div><h2>{title}</h2>{sub ? <div className="sub">{sub}</div> : null}</div>{actions ? <div className="actions">{actions}</div> : null}</div> : null}
+      {title || actions ? <div className="card-h"><div className="title-row"><h2>{title}</h2>{typeof sub === "string" ? <Hint text={sub} /> : sub ? <span className="sub">{sub}</span> : null}</div>{actions ? <div className="actions">{actions}</div> : null}</div> : null}
       <div className={`card-b${tight ? " tight" : ""}`}>{children}</div>
     </section>
   );
 }
 
-export function Stat({ k, v, d, href }: { k: string; v: ReactNode; d?: ReactNode; href?: string }) {
-  const inner = <><div className="k">{k}</div><div className="v">{v}</div>{d ? <div className="d">{d}</div> : null}</>;
+export function Stat({ k, v, d, href, hint }: { k: string; v: ReactNode; d?: ReactNode; href?: string; hint?: string }) {
+  const inner = <><div className="k">{k}{hint ? <Hint text={hint} /> : null}</div><div className="v">{v}</div>{d ? <div className="d">{d}</div> : null}</>;
   return href ? <Link href={href} className="card stat">{inner}</Link> : <div className="card stat">{inner}</div>;
 }
 
@@ -79,8 +81,8 @@ export function InfoBadge({ value }: { value: string | null | undefined }) {
   const short: Record<string, string> = { confirmed: "Confirmed", reported: "Reported · unverified", inferred: "Inference", unknown: "Unknown" };
   return <Badge tone={STATUS_TONE[value ?? "unknown"]}>{short[value ?? "unknown"] ?? value}</Badge>;
 }
-export function Demo({ on }: { on?: boolean | null }) { return on ? <Badge tone="demo">DEMO</Badge> : null; }
-export function Sim({ on }: { on?: boolean | null }) { return on ? <Badge tone="sim">SIMULATED</Badge> : null; }
+export function Demo({ on }: { on?: boolean | null }) { return on ? <Badge tone="demo">Demo</Badge> : null; }
+export function Sim({ on }: { on?: boolean | null }) { return on ? <span className="row" style={{ gap: 4, display: "inline-flex" }}><Badge tone="sim">Simulated</Badge><Hint text="An external integration (web search, email, social) is not connected, so this step made no outside call. Nothing simulated is saved as real research." /></span> : null; }
 export function Score({ value }: { value: number | null | undefined }) {
   const b = scoreBand(value);
   return <Badge tone={b.tone === "muted" ? "outline" : b.tone}>{value ?? "–"}{value != null ? ` · ${b.label}` : ""}</Badge>;
@@ -124,4 +126,14 @@ export function DeleteForm({ action, label = "Delete", back }: { action: (fd: Fo
 
 export function Tabs({ items, active }: { items: { href: string; label: string; count?: number }[]; active: string }) {
   return <nav className="tabs">{items.map((t) => <Link key={t.href} href={t.href} className={t.label === active ? "active" : ""}>{t.label}{t.count ? ` (${t.count})` : ""}</Link>)}</nav>;
+}
+
+/** Tabs that join related pages into one section (Network, Agenda, Automation). */
+const SECTIONS: Record<string, { href: string; label: string }[]> = {
+  network: [{ href: "/companies", label: "Companies" }, { href: "/contacts", label: "Contacts" }],
+  agenda: [{ href: "/tasks", label: "Tasks & follow-ups" }, { href: "/activities", label: "Meetings & activities" }],
+  automation: [{ href: "/agents", label: "Agents" }, { href: "/automations", label: "Workflows" }],
+};
+export function SectionTabs({ section, active }: { section: keyof typeof SECTIONS; active: string }) {
+  return <Tabs items={SECTIONS[section]} active={active} />;
 }

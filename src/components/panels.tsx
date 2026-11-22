@@ -16,7 +16,7 @@ export async function SourcesPanel({ target, back }: { target: Target; back: str
   const col = { projectId: S.sources.projectId, companyId: S.sources.companyId, contactId: S.sources.contactId, opportunityId: S.sources.opportunityId, discoveryId: S.sources.discoveryId, researchSessionId: S.sources.researchSessionId }[k];
   const rows = await db.select().from(S.sources).where(eq(col, v)).orderBy(desc(S.sources.createdAt));
   return (
-    <Card title="Sources & evidence" sub="Every important claim should trace back to a source" tight id="sources">
+    <Card title="Sources & evidence" sub="Every important fact should trace back to a source. Status: Confirmed = verified; Reported = stated by a source but not independently checked; Inference = analyst/AI deduction, never treated as fact; Unknown = not established." tight id="sources">
       {rows.length ? <div className="list">{rows.map((s) => (
         <div key={s.id} className="li">
           <div className="grow">

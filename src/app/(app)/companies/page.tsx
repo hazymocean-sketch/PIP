@@ -2,7 +2,7 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
-import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
+import { Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Val } from "@/components/ui";
 
 export const metadata = { title: "Companies" };
 export default async function Companies({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -13,7 +13,8 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const rows = (await db.execute(sql`select c.*, (select count(distinct project_id) from project_companies pc where pc.company_id = c.id)::int as projects,
     (select count(*) from contacts k where k.company_id = c.id)::int as contacts from companies c where ${sql.join(conds, sql` and `)} order by c.name limit 500`)).rows as any[];
   return (<>
-    <PageHead title="Companies" sub="Developers, owners, operators, consultants, designers, contractors and partners." actions={<Link className="btn primary" href="/companies/new">New company</Link>} />
+    <PageHead title="Network" sub="Companies (developers, operators, designers, contractors…) and the people in them. Companies are also created when you link a stakeholder to a project." actions={<Link className="btn primary" href="/companies/new">New company</Link>} />
+    <SectionTabs section="network" active="Companies" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search companies" defaultValue={sp.q ?? ""} />
       <select name="category" defaultValue={sp.category ?? ""}><option value="">All categories</option>{C.COMPANY_CATEGORY.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>

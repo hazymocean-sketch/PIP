@@ -1,22 +1,24 @@
 import { chromium } from "playwright-core";
 const base = "http://localhost:3100";
+const projId = process.argv[2];
 const browser = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
-async function shoot(viewport, pages, prefix) {
+async function shoot(theme, viewport, pages, prefix) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+  await ctx.addCookies([{ name: "pip_theme", value: theme, url: base }]);
   const p = await ctx.newPage();
   await p.goto(base + "/login");
+  if (prefix.includes("login")) { await p.waitForTimeout(800); await p.screenshot({ path: `test-artifacts/${prefix}.png` }); await ctx.close(); return; }
   await p.fill("#email", "admin@pip.local"); await p.fill("#password", "LocalTest-Pass123");
   await Promise.all([p.waitForURL(base + "/"), p.click("button[type=submit]")]);
   for (const [name, path] of pages) {
-    await p.goto(base + path, { waitUntil: "networkidle" });
-    await p.screenshot({ path: `test-artifacts/${prefix}-${name}.png`, fullPage: false });
+    await p.goto(base + path, { waitUntil: "networkidle" }); await p.waitForTimeout(500);
+    if (name === "project-hint") { await p.hover(".card#score .hint"); await p.waitForTimeout(250); }
+    await p.screenshot({ path: `test-artifacts/${prefix}-${name}.png` });
   }
   await ctx.close();
 }
-const projId = process.argv[2];
-await shoot({ width: 1440, height: 900 }, [["overview", "/"], ["command", "/command"], ["approvals", "/command?tab=approvals"], ["project", `/projects/${projId}`], ["discoveries", "/discoveries"], ["agents", "/agents"], ["opps", "/opportunities"]], "desktop");
-await shoot({ width: 390, height: 844 }, [["overview", "/"], ["project", `/projects/${projId}`], ["command", "/command"]], "mobile");
-// login page
-const c = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const pg = await c.newPage(); await pg.goto(base + "/login"); await pg.screenshot({ path: "test-artifacts/desktop-login.png" });
-await browser.close();
-console.log("done");
+await shoot("dark", { width: 1440, height: 900 }, [["overview", "/"], ["project-hint", `/projects/${projId}`], ["command", "/command"], ["network", "/companies"]], "dark");
+await shoot("light", { width: 1440, height: 900 }, [["overview", "/"], ["project", `/projects/${projId}`], ["agents", "/agents"]], "light");
+await shoot("light", { width: 390, height: 844 }, [["overview", "/"]], "mobile-light");
+await shoot("dark", { width: 1280, height: 800 }, [], "dark-login");
+await browser.close(); console.log("done");

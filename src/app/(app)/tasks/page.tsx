@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { completeTask } from "@/server/actions";
-import { Badge, Card, Demo, Empty, Flash, PageHead, StatusBadge, Tabs, fmtDate } from "@/components/ui";
+import { Badge, Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Tabs, fmtDate } from "@/components/ui";
 
 export const metadata = { title: "Tasks & Follow-ups" };
 export default async function Tasks({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -20,7 +20,8 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<Re
     count(*) filter (where status in ('open','in_progress','waiting'))::int as open from tasks`)).rows[0] as any;
   const today = new Date().toISOString().slice(0, 10);
   return (<>
-    <PageHead title="Tasks & Follow-ups" actions={<Link className="btn primary" href="/tasks/new">New task</Link>} />
+    <PageHead title="Agenda" sub="Your tasks and follow-ups, plus the log of meetings, calls and site visits. Tasks created by agents or workflows are tagged." actions={<Link className="btn primary" href="/tasks/new">New task</Link>} />
+    <SectionTabs section="agenda" active="Tasks & follow-ups" />
     <Flash sp={sp} />
     <Tabs active={{ open: "Open", overdue: "Overdue", week: "Due in 7 days", done: "Done", all: "All" }[view] ?? "Open"} items={[
       { href: "/tasks", label: "Open", count: counts.open }, { href: "/tasks?view=overdue", label: "Overdue", count: counts.overdue },

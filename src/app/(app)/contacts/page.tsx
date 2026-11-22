@@ -2,7 +2,7 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
-import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
+import { Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Val } from "@/components/ui";
 
 export const metadata = { title: "Contacts" };
 export default async function Contacts({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -13,7 +13,8 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const rows = (await db.execute(sql`select k.*, c.name as company, (select count(*) from project_contacts pc where pc.contact_id = k.id)::int as projects
     from contacts k left join companies c on c.id = k.company_id where ${sql.join(conds, sql` and `)} order by k.full_name limit 500`)).rows as any[];
   return (<>
-    <PageHead title="Contacts" sub="Stakeholders. Contact details only when publicly available or provided by you — never guessed." actions={<Link className="btn primary" href="/contacts/new">New contact</Link>} />
+    <PageHead title="Network" sub="Stakeholders. Contact details are stored only when publicly available or provided by you — never guessed." actions={<Link className="btn primary" href="/contacts/new">New contact</Link>} />
+    <SectionTabs section="network" active="Contacts" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search name, position, company" defaultValue={sp.q ?? ""} />
       <select name="rel" defaultValue={sp.rel ?? ""}><option value="">Any relationship</option>{C.RELATIONSHIP_STATUS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><button className="btn">Filter</button></form>

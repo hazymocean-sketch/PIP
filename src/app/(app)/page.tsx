@@ -37,14 +37,14 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <PageHead title="Overview" sub="Live summary of PIP's database. Every figure below is counted from actual records."
         actions={<><Link className="btn" href="/discoveries">Run discovery</Link><Link className="btn primary" href="/projects/new">New project</Link></>} />
       <Flash sp={sp} />
-      {k.demo > 0 ? <div className="notice warn" style={{ marginBottom: 14 }}>Includes {k.demo} demo project(s), clearly marked DEMO. Remove them in Settings → Data.</div> : null}
+      {k.demo > 0 ? <div className="notice warn" style={{ marginBottom: 14 }}>{k.demo} demo project(s) loaded · <Link className="link" href="/settings/data">remove in Settings → Data</Link></div> : null}
       <div className="grid g6" style={{ marginBottom: 14 }}>
-        <Stat k="Discovered projects" v={k.projects} href="/projects" />
-        <Stat k="New discoveries (7d)" v={k.new_disc} d={`${k.disc_review} awaiting review`} href="/discoveries" />
+        <Stat k="Projects" v={k.projects} href="/projects" hint="All projects in PIP, including demo ones." />
+        <Stat k="New finds · 7d" v={k.new_disc} d={`${k.disc_review} to review`} href="/discoveries" hint="Discoveries added in the last 7 days. Review them in Discover to save, link or reject." />
         <Stat k="Under research" v={k.under_research} href="/projects?status=under_research" />
-        <Stat k="Verified or better" v={k.verified} href="/projects?status=verified" />
-        <Stat k="Qualified opportunities" v={k.qualified} href="/opportunities?qualification=qualified" />
-        <Stat k="Pending approvals" v={k.approvals} d={k.overdue ? `${k.overdue} overdue tasks` : undefined} href="/command?tab=approvals" />
+        <Stat k="Verified+" v={k.verified} href="/projects?status=verified" hint="Projects at Verified, Qualified, Active opportunity or Won." />
+        <Stat k="Qualified opps" v={k.qualified} href="/opportunities?qualification=qualified" hint="Open opportunities marked Qualified (not yet won or lost)." />
+        <Stat k="Approvals" v={k.approvals} d={k.overdue ? `${k.overdue} overdue tasks` : undefined} href="/command?tab=approvals" hint="Actions proposed by agents or workflows that are waiting for your decision." />
       </div>
 
       {k.projects === 0 ? (

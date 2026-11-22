@@ -1,6 +1,7 @@
+import { cookies } from "next/headers";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { NavLink } from "@/components/client";
+import { NavLink, ThemeToggle } from "@/components/client";
 import { requireAdmin } from "@/server/auth";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ async function counts() {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdmin();
   const c = await counts();
+  const theme = (await cookies()).get("pip_theme")?.value === "light" ? "light" : "dark";
   return (
     <>
       <input type="checkbox" id="nav-toggle" hidden />
@@ -28,30 +30,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div><div className="brand-name">Projects Intelligence</div><div className="brand-sub">UAE · GCC</div></div>
           </div>
           <nav className="nav">
-            <NavLink href="/command" count={c.approvals + c.unread} alert={c.approvals > 0}>AI Command Centre</NavLink>
+            <NavLink href="/command" count={c.approvals} alert={c.approvals > 0}>Command</NavLink>
             <NavLink href="/">Overview</NavLink>
             <div className="nav-group">Intelligence</div>
-            <NavLink href="/news">News &amp; Updates</NavLink>
-            <NavLink href="/discoveries" count={c.discoveries}>Discoveries</NavLink>
-            <NavLink href="/research">Research Center</NavLink>
+            <NavLink href="/discoveries" count={c.discoveries}>Discover</NavLink>
+            <NavLink href="/news">News</NavLink>
+            <NavLink href="/research">Research</NavLink>
             <div className="nav-group">Pipeline</div>
             <NavLink href="/projects">Projects</NavLink>
             <NavLink href="/opportunities">Opportunities</NavLink>
-            <NavLink href="/companies">Companies</NavLink>
-            <NavLink href="/contacts">Contacts</NavLink>
+            <NavLink href="/companies" match={["/contacts"]}>Network</NavLink>
             <div className="nav-group">Execution</div>
-            <NavLink href="/activities">Meetings &amp; Activities</NavLink>
-            <NavLink href="/tasks" count={c.overdue} alert={c.overdue > 0}>Tasks &amp; Follow-ups</NavLink>
-            <div className="nav-group">Automation</div>
-            <NavLink href="/agents" count={c.active_runs}>Agents</NavLink>
-            <NavLink href="/automations">Workflows</NavLink>
+            <NavLink href="/tasks" match={["/activities"]} count={c.overdue} alert={c.overdue > 0}>Agenda</NavLink>
+            <NavLink href="/agents" match={["/automations"]} count={c.active_runs}>Automation</NavLink>
             <div className="nav-group">Insight</div>
-            <NavLink href="/reports">Reports &amp; Analytics</NavLink>
+            <NavLink href="/reports">Reports</NavLink>
             <NavLink href="/settings">Settings</NavLink>
           </nav>
           <div className="sidebar-foot">
-            <span title={user.email}>{user.name}</span>
-            <form action="/api/auth/logout" method="post"><button className="btn ghost sm" type="submit">Sign out</button></form>
+            <ThemeToggle initial={theme} />
+            <div className="row">
+              <span title={user.email} style={{ fontWeight: 600 }}>{user.name}</span>
+              <form action="/api/auth/logout" method="post"><button className="btn ghost sm" type="submit">Sign out</button></form>
+            </div>
           </div>
         </aside>
         <div className="main">

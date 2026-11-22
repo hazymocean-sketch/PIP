@@ -8,9 +8,9 @@ import { integrationStatus } from "@/server/ai/providers";
 import { TOOLS } from "@/server/agents/tools";
 import { Submit } from "@/components/client";
 import { AgentButton } from "@/components/panels";
-import { Badge, Card, Demo, Empty, Flash, PageHead, Sim, StatusBadge, Tabs, ago } from "@/components/ui";
+import { Badge, Card, Demo, Empty, Flash, Hint, PageHead, Sim, StatusBadge, Tabs, ago } from "@/components/ui";
 
-export const metadata = { title: "AI Command Centre" };
+export const metadata = { title: "Command" };
 
 async function insights() {
   const r = (await db.execute(sql`select
@@ -51,8 +51,8 @@ export default async function Command({ searchParams }: { searchParams: Promise<
   const activeLabel = tabs.find((t) => t.href.endsWith(`tab=${tab}`))?.label ?? "Console";
 
   return (<>
-    <PageHead title="AI Command Centre" sub="Assign work to agents, approve proposed actions and monitor automation across every venture."
-      actions={<Badge tone={ai.connected ? "good" : "sim"}>{ai.connected ? "AI model connected (untested)" : "Rule-based planner · no AI model connected"}</Badge>} />
+    <PageHead title="Command" sub="Talk to PIP, assign work to agents, approve proposed actions and monitor automation across every venture."
+      actions={<span className="row" style={{ gap: 6 }}><Badge tone={ai.connected ? "good" : "sim"}>{ai.connected ? "AI model connected" : "Rule-based"}</Badge><Hint text={ai.connected ? "An AI model key is present. Agents use it for run summaries (adapter not yet verified live)." : "No AI model connected yet. Agents follow transparent rule-based playbooks; add an AI key in Vercel to upgrade them."} /></span>} />
     <Flash sp={sp} />
     <Tabs items={tabs} active={activeLabel} />
 

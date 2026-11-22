@@ -2,7 +2,7 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
-import { Card, Demo, Empty, Flash, PageHead, fmtDate, Badge } from "@/components/ui";
+import { Card, Demo, Empty, Flash, PageHead, SectionTabs, fmtDate, Badge } from "@/components/ui";
 
 export const metadata = { title: "Meetings & Activities" };
 export default async function Activities({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -14,7 +14,8 @@ export default async function Activities({ searchParams }: { searchParams: Promi
     left join projects p on p.id = a.project_id left join opportunities o on o.id = a.opportunity_id left join companies c on c.id = a.company_id left join contacts k on k.id = a.contact_id
     where ${sql.join(conds, sql` and `)} order by a.occurred_at desc limit 500`)).rows as any[];
   return (<>
-    <PageHead title="Meetings & Activities" sub="Meetings, calls, emails, site visits, research and decisions — linked to the records they concern." actions={<Link className="btn primary" href="/activities/new">Log activity</Link>} />
+    <PageHead title="Agenda" sub="Meetings, calls, emails, site visits, research and decisions — each linked to the project, company, contact or opportunity it concerns." actions={<Link className="btn primary" href="/activities/new">Log activity</Link>} />
+    <SectionTabs section="agenda" active="Meetings & activities" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search" defaultValue={sp.q ?? ""} />
       <select name="type" defaultValue={sp.type ?? ""}><option value="">All types</option>{C.ACTIVITY_TYPE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><button className="btn">Filter</button></form>

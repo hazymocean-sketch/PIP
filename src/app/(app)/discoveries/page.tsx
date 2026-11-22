@@ -24,10 +24,10 @@ export default async function Discoveries({ searchParams }: { searchParams: Prom
   const refs = await loadRefOptions(DISCOVERY_FIELDS);
   const provider = getSearchProvider();
   return (<>
-    <PageHead title="Discoveries" sub="Find potential projects, review the evidence, then save, link, flag or reject. Nothing becomes a project without your review." />
+    <PageHead title="Discover" sub="Find potential projects, review the evidence, then save, link, flag or reject. Nothing becomes a project without your review." />
     <Flash sp={sp} />
     <div className="grid g2" style={{ marginBottom: 14 }}>
-      <Card title="Run a discovery search" sub={provider ? `Automated via ${provider.label}` : "Manual mode — no search provider connected"}>
+      <Card title="Run a discovery search" sub={provider ? `Automated via ${provider.label}. Results land in the review list below.` : "Manual mode — no search API connected yet. PIP prepares the query set and one-click search links; you open them and add what you find. Nothing is fabricated."}>
         <form action={runDiscoveryAction} className="stack" style={{ gap: 10 }}>
           <div className="fields">
             <div className="field wide"><label>Research query (optional)</label><input name="query" placeholder="e.g. new beach resort Al Marjan Island" /></div>
@@ -36,7 +36,6 @@ export default async function Discoveries({ searchParams }: { searchParams: Prom
             <div className="field"><label>Location</label><input name="location" list="disc-locs" placeholder="UAE" /><datalist id="disc-locs">{C.LOCATIONS.map((l) => <option key={l} value={l} />)}</datalist></div>
             <div className="field"><label>Published from</label><input type="date" name="dateFrom" /></div>
           </div>
-          {!provider ? <div className="notice">Without a search API, PIP prepares the query set and one-click search links. You open them, then add what you find. No results are fabricated.</div> : null}
           <div className="row"><Submit>Run discovery</Submit></div>
         </form>
       </Card>

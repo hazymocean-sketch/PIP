@@ -1,4 +1,5 @@
 import type { FieldDef, RefKey } from "@/lib/fields";
+import { Hint } from "./client";
 
 type Opts = Partial<Record<RefKey, { value: string; label: string; group?: string }[]>>;
 
@@ -45,9 +46,8 @@ export function FormFields({ fields, values = {}, refs = {}, only }: { fields: F
         }
         return (
           <div key={f.name} className={`field${f.wide ? " wide" : ""}`}>
-            {f.type !== "checkbox" ? <label htmlFor={id}>{f.label}{f.required ? <span className="req"> *</span> : null}</label> : null}
+            {f.type !== "checkbox" ? <label htmlFor={id}>{f.label}{f.required ? <span className="req">*</span> : null}{f.help ? <Hint text={f.help} /> : null}</label> : null}
             {input}
-            {f.help ? <span className="help">{f.help}</span> : null}
           </div>
         );
       })}

@@ -4,9 +4,9 @@ import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { tickNow } from "@/server/actions";
 import { Submit } from "@/components/client";
-import { Badge, Card, Demo, Empty, Flash, PageHead, fmtDate, ago } from "@/components/ui";
+import { Badge, Card, Demo, Empty, Flash, PageHead, SectionTabs, fmtDate, ago } from "@/components/ui";
 
-export const metadata = { title: "Workflows" };
+export const metadata = { title: "Automation" };
 export default async function Automations({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const rows = (await db.execute(sql`select w.*, v.name as venture, (select count(*) from workflow_runs r where r.workflow_id = w.id)::int as runs,
@@ -15,10 +15,10 @@ export default async function Automations({ searchParams }: { searchParams: Prom
     from workflows w left join ventures v on v.id = w.venture_id order by w.enabled desc, w.name`)).rows as any[];
   const cron = !!process.env.CRON_SECRET;
   return (<>
-    <PageHead title="Workflows" sub="Scheduled, event-based and manual automations with conditions, approvals, retries and full logs."
+    <PageHead title="Automation" sub={`Workflows run on a schedule, when something happens (an event), or manually. Events run instantly; schedules and retries run on each "tick" — ${cron ? "the scheduler is configured." : "set CRON_SECRET + Vercel Cron in production, or use Run tick now."} Templates start disabled.`}
       actions={<><form action={tickNow}><Submit className="btn" pendingText="Running…">Run tick now</Submit></form><Link className="btn primary" href="/automations/new">New workflow</Link></>} />
+    <SectionTabs section="automation" active="Workflows" />
     <Flash sp={sp} />
-    <div className="notice" style={{ marginBottom: 14 }}>Events run immediately when they happen. Schedules and retries run on each <em>tick</em>: {cron ? "the scheduler endpoint is configured (CRON_SECRET set)." : "set CRON_SECRET and Vercel Cron to call /api/cron/tick every 15 minutes in production. Locally, use “Run tick now”."} Templates are disabled until you enable them.</div>
     <Card tight>{rows.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Workflow</th><th>Trigger</th><th>Mode</th><th>Venture</th><th>Steps</th><th>Runs</th><th>Last run</th><th>Status</th></tr></thead><tbody>
       {rows.map((w) => <tr key={w.id}><td><Link className="title" href={`/automations/${w.id}`}>{w.name}</Link> <Demo on={w.is_demo} /><div className="muted small">{w.description}</div></td>
         <td className="small">{w.trigger_type === "event" ? `On ${C.label(C.EVENT_TYPES, w.event_type)}` : w.trigger_type === "schedule" ? `Every ${w.schedule?.every}${w.schedule?.at ? ` at ${w.schedule.at}` : ""}${w.next_run_at ? ` · next ${fmtDate(w.next_run_at, true)}` : ""}` : "Manual"}</td>

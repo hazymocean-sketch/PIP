@@ -8,7 +8,7 @@ import { runAgentAction, updateAgent } from "@/server/actions";
 import { toolList } from "@/server/agents/tools";
 import { refOptions } from "@/server/entities";
 import { Submit } from "@/components/client";
-import { Badge, Card, Demo, Empty, Flash, PageHead, Sim, StatusBadge, ago } from "@/components/ui";
+import { Badge, Card, Demo, Empty, Flash, Hint, PageHead, Sim, StatusBadge, ago } from "@/components/ui";
 
 export default async function AgentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; const sp = await searchParams;
@@ -47,10 +47,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <div className="field"><label>Instructions</label><textarea name="instructions" defaultValue={a.instructions ?? ""} /></div>
           <div className="field"><label>Operating rules</label><textarea name="operatingRules" defaultValue={a.operatingRules ?? ""} style={{ minHeight: 100 }} /></div>
           <div className="field"><label>Autonomy mode</label><select name="autonomyMode" defaultValue={a.autonomyMode}>{C.AUTONOMY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
-          <div className="field"><label>Autonomous external-action limit per run</label><input name="autonomyLimit" type="number" min={0} max={50} defaultValue={a.autonomyLimit} /><span className="help">0 = every external action still needs approval, even in autonomous mode.</span></div>
-          <span className="lbl-s">Permitted tools</span>
+          <div className="field"><label>External-action limit per run <Hint text="Only applies in Autonomous mode. 0 means every external action (email, posting) still needs your approval." /></label><input name="autonomyLimit" type="number" min={0} max={50} defaultValue={a.autonomyLimit} /></div>
+          <span className="lbl-s">Permitted tools <Hint text="What this agent is allowed to use. External tools need an integration; tools marked ‘changes data’ follow the approval rules of the mode." /></span>
           {tools.map((t) => <label key={t.key} className="check small" title={t.description}><input type="checkbox" name="tools" value={t.key} defaultChecked={a.tools.includes(t.key)} /> {t.label} {t.kind === "external" ? <Badge tone="sim">external</Badge> : null}{t.consequential ? <Badge tone="outline">changes data</Badge> : null}</label>)}
-          <span className="lbl-s" style={{ marginTop: 6 }}>Venture scope (none = all)</span>
+          <span className="lbl-s" style={{ marginTop: 6 }}>Venture scope <Hint text="Limit the agent to specific ventures. Leave all unticked to let it work across every venture." /></span>
           {ventures.map((v) => <label key={v.id} className="check small"><input type="checkbox" name="ventureId" value={v.id} defaultChecked={scope.has(v.id)} /> {v.name}</label>)}
           <label className="check"><input type="checkbox" name="enabled" defaultChecked={a.enabled} /> Enabled</label>
           <Submit>Save configuration</Submit>
