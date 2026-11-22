@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val, fmtDate, fmtMoney, Tabs } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Opportunities" };
 export default async function Opps({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -21,7 +22,7 @@ export default async function Opps({ searchParams }: { searchParams: Promise<Rec
   const today = new Date().toISOString().slice(0, 10);
   const qs = (v?: string) => { const p = new URLSearchParams(sp); p.delete("ok"); p.delete("error"); if (v) p.set("venture", v); else p.delete("venture"); return `/opportunities?${p}`; };
   return (<>
-    <PageHead title="Opportunities" sub="Commercial opportunities, each tied to one venture's pipeline. One project can produce several." actions={<Link className="btn primary" href="/opportunities/new">New opportunity</Link>} />
+    <PageHead title="Opportunities" sub="Commercial opportunities, each tied to one venture's pipeline. One project can produce several." actions={<Link className="btn primary" href="/opportunities/new"><Icon name="plus" />New opportunity</Link>} />
     <Flash sp={sp} />
     <Tabs active={ventures.find((v) => v.id === sp.venture)?.name ?? "All ventures"} items={[{ href: qs(), label: "All ventures" }, ...ventures.map((v) => ({ href: qs(v.id), label: v.name }))]} />
     <form className="filters">{sp.venture ? <input type="hidden" name="venture" value={sp.venture} /> : null}
@@ -42,6 +43,6 @@ export default async function Opps({ searchParams }: { searchParams: Promise<Rec
         <td><StatusBadge value={o.priority} opts={C.PRIORITY} /></td><td className="hide-sm num"><Val v={fmtMoney(o.estimated_value, o.value_currency)} /></td>
         <td className="small"><Val v={o.next_action} unknown="None set" /></td>
         <td className="nowrap small" style={{ color: o.follow_up_date && o.follow_up_date < today ? "var(--red)" : undefined }}>{fmtDate(o.follow_up_date) ?? <span className="faint">—</span>}</td></tr>)}
-    </tbody></table></div> : <Empty title="No opportunities" action={<Link className="btn primary" href="/opportunities/new">Add opportunity</Link>}>Create opportunities from qualified projects.</Empty>}</Card>
+    </tbody></table></div> : <Empty title="No opportunities" action={<Link className="btn primary" href="/opportunities/new"><Icon name="plus" />Add opportunity</Link>}>Create opportunities from qualified projects.</Empty>}</Card>
   </>);
 }

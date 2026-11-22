@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Val } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Contacts" };
 export default async function Contacts({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -13,7 +14,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const rows = (await db.execute(sql`select k.*, c.name as company, (select count(*) from project_contacts pc where pc.contact_id = k.id)::int as projects
     from contacts k left join companies c on c.id = k.company_id where ${sql.join(conds, sql` and `)} order by k.full_name limit 500`)).rows as any[];
   return (<>
-    <PageHead title="Network" sub="Stakeholders. Contact details are stored only when publicly available or provided by you — never guessed." actions={<Link className="btn primary" href="/contacts/new">New contact</Link>} />
+    <PageHead title="Network" sub="Stakeholders. Contact details are stored only when publicly available or provided by you — never guessed." actions={<Link className="btn primary" href="/contacts/new"><Icon name="plus" />New contact</Link>} />
     <SectionTabs section="network" active="Contacts" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search name, position, company" defaultValue={sp.q ?? ""} />
@@ -21,6 +22,6 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
     <Card tight>{rows.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Relationship</th><th className="hide-sm">Email</th><th className="hide-sm">Projects</th><th className="hide-sm">Verification</th></tr></thead><tbody>
       {rows.map((k) => <tr key={k.id}><td><Link className="title" href={`/contacts/${k.id}`}>{k.full_name}</Link> <Demo on={k.is_demo} /></td><td><Val v={k.position} /></td><td><Val v={k.company} unknown="—" /></td>
         <td><StatusBadge value={k.relationship_status} opts={C.RELATIONSHIP_STATUS} /></td><td className="hide-sm small"><Val v={k.email} unknown="Not on file" /></td><td className="hide-sm num">{k.projects}</td><td className="hide-sm"><StatusBadge value={k.verification_status} opts={C.VERIFICATION} /></td></tr>)}
-    </tbody></table></div> : <Empty title="No contacts yet" action={<Link className="btn primary" href="/contacts/new">Add contact</Link>} />}</Card>
+    </tbody></table></div> : <Empty title="No contacts yet" action={<Link className="btn primary" href="/contacts/new"><Icon name="plus" />Add contact</Link>} />}</Card>
   </>);
 }

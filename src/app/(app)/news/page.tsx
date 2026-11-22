@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { Badge, Card, Demo, Empty, Flash, PageHead, fmtDate } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "News & Updates" };
 export default async function News({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -23,7 +24,7 @@ export default async function News({ searchParams }: { searchParams: Promise<Rec
   const devs = (await db.execute(sql`select id, name from companies where category in ('developer','owner') order by name`)).rows as any[];
   return (<>
     <PageHead title="News & Updates" sub="Monitored announcements. Duplicates are blocked by normalised URL. Automated monitoring activates when a search provider is connected."
-      actions={<Link className="btn primary" href="/news/new">Add news item</Link>} />
+      actions={<Link className="btn primary" href="/news/new"><Icon name="plus" />Add news item</Link>} />
     <Flash sp={sp} />
     <form className="filters">
       <input type="search" name="q" placeholder="Search headlines" defaultValue={sp.q ?? ""} />
@@ -42,7 +43,7 @@ export default async function News({ searchParams }: { searchParams: Promise<Rec
           {n.summary ? <div className="small" style={{ marginTop: 4, color: "var(--text-2)" }}>{n.summary}</div> : null}
           {n.project ? <div className="small" style={{ marginTop: 4 }}>Project: <Link className="link" href={`/projects/${n.project_id}`}>{n.project}</Link></div> : null}
         </div>
-        <div className="stack" style={{ gap: 6, alignItems: "flex-end" }}><Badge tone={n.relevance >= 4 ? "good" : "outline"}>Relevance {n.relevance}/5</Badge><Link className="btn ghost sm" href={`/news/${n.id}/edit`}>Edit</Link></div>
-      </div>))}</div> : <Empty title="No news items" action={<Link className="btn primary" href="/news/new">Add news item</Link>}>Each item needs a publication date, source, original URL and a short summary.</Empty>}</Card>
+        <div className="stack" style={{ gap: 6, alignItems: "flex-end" }}><Badge tone={n.relevance >= 4 ? "good" : "outline"}>Relevance {n.relevance}/5</Badge><Link className="btn ghost sm" href={`/news/${n.id}/edit`}><Icon name="edit" />Edit</Link></div>
+      </div>))}</div> : <Empty title="No news items" action={<Link className="btn primary" href="/news/new"><Icon name="plus" />Add news item</Link>}>Each item needs a publication date, source, original URL and a short summary.</Empty>}</Card>
   </>);
 }

@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { Card, Demo, Empty, Flash, PageHead, Score, StatusBadge, Val, fmtDate, Badge } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Projects" };
 
@@ -28,7 +29,7 @@ export default async function Projects({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHead title="Projects" sub="Central project database. Missing facts are shown as Unknown — never invented." actions={<Link className="btn primary" href="/projects/new">New project</Link>} />
+      <PageHead title="Projects" sub="Central project database. Missing facts are shown as Unknown — never invented." actions={<Link className="btn primary" href="/projects/new"><Icon name="plus" />New project</Link>} />
       <Flash sp={sp} />
       <form className="filters">
         <input type="search" name="q" placeholder="Search name, brand, description" defaultValue={q} />

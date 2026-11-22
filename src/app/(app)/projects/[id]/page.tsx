@@ -11,6 +11,7 @@ import { refOptions } from "@/server/entities";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
 import { Badge, Card, DeleteForm, Demo, Empty, Flash, Hint, PageHead, Score, StatusBadge, Val, fmtDate, fmtMoney, Sim } from "@/components/ui";
 import { Submit } from "@/components/client";
+import { Icon } from "@/components/icons";
 
 export default async function ProjectPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; const sp = await searchParams;
@@ -41,7 +42,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         actions={<>
           <AgentButton agentKey="research" label="Run Research agent" targetType="project" targetId={id} instruction={`Research ${p.name}`} back={back} />
           <Link className="btn" href={`/opportunities/new?projectId=${id}`}>Add opportunity</Link>
-          <Link className="btn primary" href={`/projects/${id}/edit`}>Edit</Link>
+          <Link className="btn primary" href={`/projects/${id}/edit`}><Icon name="edit" />Edit</Link>
         </>} />
       <Flash sp={sp} />
       {dups.length ? <div className="notice warn" style={{ marginBottom: 14 }}>Possible duplicates: {dups.map((d, i) => <span key={d.id}>{i ? ", " : ""}<Link className="link" href={`/projects/${d.id}`}>{d.name}</Link> ({Math.round(d.score * 100)}%)</span>)}</div> : null}

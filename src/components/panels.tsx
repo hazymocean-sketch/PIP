@@ -8,6 +8,7 @@ import { addSource, completeTask, deleteSource, runAgentAction } from "@/server/
 import { Card, Demo, Empty, InfoBadge, StatusBadge, fmtDate, Badge } from "./ui";
 import { FormFields } from "./fields";
 import { Submit } from "./client";
+import { Icon } from "./icons";
 
 type Target = { projectId?: string; companyId?: string; contactId?: string; opportunityId?: string; discoveryId?: string; researchSessionId?: string };
 
@@ -80,7 +81,7 @@ export function AgentButton({ agentKey, label, targetType, targetId, instruction
       {targetId ? <input type="hidden" name="targetId" value={targetId} /> : null}
       {ventureId ? <input type="hidden" name="ventureId" value={ventureId} /> : null}
       <input type="hidden" name="_back" value={back} />
-      <Submit className="btn" pendingText="Agent running…">{label}</Submit>
+      <Submit className="btn" pendingText="Agent running…"><Icon name="spark" />{label}</Submit>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Hint } from "./client";
+import { Icon } from "./icons";
 export { Hint };
 import type { ReactNode } from "react";
 import * as C from "@/lib/constants";
@@ -114,7 +115,7 @@ export function ago(d: Date | string | null | undefined) {
 export function DeleteForm({ action, label = "Delete", back }: { action: (fd: FormData) => Promise<void>; label?: string; back?: string }) {
   return (
     <details>
-      <summary className="btn danger sm" style={{ listStyle: "none" }}>{label}</summary>
+      <summary className="btn danger sm" style={{ listStyle: "none" }}><Icon name="trash" />{label}</summary>
       <form action={action} className="row" style={{ marginTop: 8 }}>
         {back ? <input type="hidden" name="_back" value={back} /> : null}
         <label className="check small"><input type="checkbox" name="confirm" required /> Confirm permanent delete</label>

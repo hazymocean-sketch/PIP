@@ -4,6 +4,7 @@ import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { completeTask } from "@/server/actions";
 import { Badge, Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Tabs, fmtDate } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Tasks & Follow-ups" };
 export default async function Tasks({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -20,7 +21,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<Re
     count(*) filter (where status in ('open','in_progress','waiting'))::int as open from tasks`)).rows[0] as any;
   const today = new Date().toISOString().slice(0, 10);
   return (<>
-    <PageHead title="Agenda" sub="Your tasks and follow-ups, plus the log of meetings, calls and site visits. Tasks created by agents or workflows are tagged." actions={<Link className="btn primary" href="/tasks/new">New task</Link>} />
+    <PageHead title="Agenda" sub="Your tasks and follow-ups, plus the log of meetings, calls and site visits. Tasks created by agents or workflows are tagged." actions={<Link className="btn primary" href="/tasks/new"><Icon name="plus" />New task</Link>} />
     <SectionTabs section="agenda" active="Tasks & follow-ups" />
     <Flash sp={sp} />
     <Tabs active={{ open: "Open", overdue: "Overdue", week: "Due in 7 days", done: "Done", all: "All" }[view] ?? "Open"} items={[
@@ -34,6 +35,6 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<Re
         <td className="nowrap small" style={{ color: t.due_date && t.due_date < today && !["done", "cancelled"].includes(t.status) ? "var(--red)" : undefined }}>{fmtDate(t.due_date) ?? <span className="faint">—</span>}</td>
         <td><StatusBadge value={t.status} opts={C.TASK_STATUS} /></td>
         <td>{!["done", "cancelled"].includes(t.status) ? <form action={completeTask.bind(null, t.id, `/tasks${view !== "open" ? `?view=${view}` : ""}`)}><button className="btn ghost sm">Done</button></form> : null}</td></tr>)}
-    </tbody></table></div> : <Empty title="Nothing here" action={<Link className="btn primary" href="/tasks/new">Add task</Link>} />}</Card>
+    </tbody></table></div> : <Empty title="Nothing here" action={<Link className="btn primary" href="/tasks/new"><Icon name="plus" />Add task</Link>} />}</Card>
   </>);
 }

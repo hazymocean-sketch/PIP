@@ -5,6 +5,7 @@ import * as C from "@/lib/constants";
 import { tickNow } from "@/server/actions";
 import { Submit } from "@/components/client";
 import { Badge, Card, Demo, Empty, Flash, PageHead, SectionTabs, fmtDate, ago } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Automation" };
 export default async function Automations({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -16,7 +17,7 @@ export default async function Automations({ searchParams }: { searchParams: Prom
   const cron = !!process.env.CRON_SECRET;
   return (<>
     <PageHead title="Automation" sub={`Workflows run on a schedule, when something happens (an event), or manually. Events run instantly; schedules and retries run on each "tick" — ${cron ? "the scheduler is configured." : "set CRON_SECRET + Vercel Cron in production, or use Run tick now."} Templates start disabled.`}
-      actions={<><form action={tickNow}><Submit className="btn" pendingText="Running…">Run tick now</Submit></form><Link className="btn primary" href="/automations/new">New workflow</Link></>} />
+      actions={<><form action={tickNow}><Submit className="btn" pendingText="Running…">Run tick now</Submit></form><Link className="btn primary" href="/automations/new"><Icon name="plus" />New workflow</Link></>} />
     <SectionTabs section="automation" active="Workflows" />
     <Flash sp={sp} />
     <Card tight>{rows.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Workflow</th><th>Trigger</th><th>Mode</th><th>Venture</th><th>Steps</th><th>Runs</th><th>Last run</th><th>Status</th></tr></thead><tbody>

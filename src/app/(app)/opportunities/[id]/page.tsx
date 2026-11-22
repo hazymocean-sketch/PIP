@@ -9,6 +9,7 @@ import { refOptions } from "@/server/entities";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val, fmtDate, fmtMoney } from "@/components/ui";
 import { Submit } from "@/components/client";
+import { Icon } from "@/components/icons";
 
 export default async function OppPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; const sp = await searchParams;
@@ -24,7 +25,7 @@ export default async function OppPage({ params, searchParams }: { params: Promis
     <PageHead title={<>{o.title} <Demo on={o.isDemo} /></>} crumbs={[{ href: "/opportunities", label: "Opportunities" }]}
       sub={<span className="row"><span>{v?.name ?? "No venture"}</span><StatusBadge value={o.qualificationStatus} opts={C.QUALIFICATION_STATUS} /><StatusBadge value={o.commercialStatus} opts={C.COMMERCIAL_STATUS} /><StatusBadge value={o.priority} opts={C.PRIORITY} /></span>}
       actions={<><AgentButton agentKey="outreach" label="Draft outreach" targetType="opportunity" targetId={id} instruction={o.nextAction ?? "Introduce our services for this opportunity"} ventureId={o.ventureId} back={back} />
-        <Link className="btn primary" href={`/opportunities/${id}/edit`}>Edit</Link></>} />
+        <Link className="btn primary" href={`/opportunities/${id}/edit`}><Icon name="edit" />Edit</Link></>} />
     <Flash sp={sp} />
     <div className="split"><div className="stack">
       <Card title="Opportunity"><dl className="kv">

@@ -6,6 +6,7 @@ import * as S from "@/db/schema";
 import * as C from "@/lib/constants";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export default async function ContactPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; const sp = await searchParams;
@@ -17,7 +18,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const back = `/contacts/${id}`;
   return (<>
     <PageHead title={<>{k.fullName} <Demo on={k.isDemo} /></>} crumbs={[{ href: "/contacts", label: "Contacts" }]} sub={<span className="row">{k.position ?? "Position unknown"}{co ? <> · <Link className="link" href={`/companies/${co.id}`}>{co.name}</Link></> : null}<StatusBadge value={k.relationshipStatus} opts={C.RELATIONSHIP_STATUS} /></span>}
-      actions={<>{k.relationshipStatus !== "do_not_contact" ? <AgentButton agentKey="outreach" label="Draft outreach" targetType="contact" targetId={id} instruction={`Introduce our services to ${k.fullName}`} back={back} /> : null}<Link className="btn primary" href={`/contacts/${id}/edit`}>Edit</Link></>} />
+      actions={<>{k.relationshipStatus !== "do_not_contact" ? <AgentButton agentKey="outreach" label="Draft outreach" targetType="contact" targetId={id} instruction={`Introduce our services to ${k.fullName}`} back={back} /> : null}<Link className="btn primary" href={`/contacts/${id}/edit`}><Icon name="edit" />Edit</Link></>} />
     <Flash sp={sp} />
     <div className="split"><div className="stack">
       <Card title="Contact details"><dl className="kv">

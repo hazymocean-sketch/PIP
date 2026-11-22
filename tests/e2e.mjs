@@ -72,6 +72,6 @@ await check("export requires auth & works", async () => {
   const r = await p.request.get(base + "/api/export?table=projects"); if (r.status() !== 200 || !(await r.text()).startsWith("id,")) throw new Error(String(r.status()));
 });
 await check("sign out invalidates session", async () => {
-  await p.click("text=Sign out"); await p.waitForURL(/login/); await p.goto(base + "/projects"); if (!p.url().includes("/login")) throw new Error("still in");
+  await p.click("button[aria-label='Sign out']"); await p.waitForURL(/login/); await p.goto(base + "/projects"); if (!p.url().includes("/login")) throw new Error("still in");
 });
 console.log(results.join("\n")); await b.close();

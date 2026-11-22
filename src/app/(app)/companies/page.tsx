@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { Card, Demo, Empty, Flash, PageHead, SectionTabs, StatusBadge, Val } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export const metadata = { title: "Companies" };
 export default async function Companies({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -13,7 +14,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const rows = (await db.execute(sql`select c.*, (select count(distinct project_id) from project_companies pc where pc.company_id = c.id)::int as projects,
     (select count(*) from contacts k where k.company_id = c.id)::int as contacts from companies c where ${sql.join(conds, sql` and `)} order by c.name limit 500`)).rows as any[];
   return (<>
-    <PageHead title="Network" sub="Companies (developers, operators, designers, contractors…) and the people in them. Companies are also created when you link a stakeholder to a project." actions={<Link className="btn primary" href="/companies/new">New company</Link>} />
+    <PageHead title="Network" sub="Companies (developers, operators, designers, contractors…) and the people in them. Companies are also created when you link a stakeholder to a project." actions={<Link className="btn primary" href="/companies/new"><Icon name="plus" />New company</Link>} />
     <SectionTabs section="network" active="Companies" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search companies" defaultValue={sp.q ?? ""} />
@@ -23,6 +24,6 @@ export default async function Companies({ searchParams }: { searchParams: Promis
       {rows.map((c) => <tr key={c.id}><td><Link className="title" href={`/companies/${c.id}`}>{c.name}</Link> <Demo on={c.is_demo} /></td><td>{C.label(C.COMPANY_CATEGORY, c.category)}</td><td><Val v={c.location} /></td>
         <td className="hide-sm small">{c.website ? <a className="link" href={c.website} target="_blank" rel="noopener noreferrer">{c.website.replace(/^https?:\/\/(www\.)?/, "").slice(0, 40)}</a> : <span className="faint">—</span>}</td>
         <td className="num">{c.projects}</td><td className="num">{c.contacts}</td><td className="hide-sm"><StatusBadge value={c.verification_status} opts={C.VERIFICATION} /></td></tr>)}
-    </tbody></table></div> : <Empty title="No companies yet" action={<Link className="btn primary" href="/companies/new">Add company</Link>}>Companies are also created when you link a new stakeholder to a project.</Empty>}</Card>
+    </tbody></table></div> : <Empty title="No companies yet" action={<Link className="btn primary" href="/companies/new"><Icon name="plus" />Add company</Link>}>Companies are also created when you link a new stakeholder to a project.</Empty>}</Card>
   </>);
 }

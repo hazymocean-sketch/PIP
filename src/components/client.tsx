@@ -56,8 +56,8 @@ export function ThemeToggle({ initial }: { initial: "dark" | "light" }) {
   };
   return (
     <div className="theme-toggle" role="group" aria-label="Colour theme">
-      <button type="button" aria-pressed={theme === "dark"} onClick={() => set("dark")}>Dark</button>
-      <button type="button" aria-pressed={theme === "light"} onClick={() => set("light")}>Light</button>
+      <button type="button" aria-pressed={theme === "dark"} onClick={() => set("dark")}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }}><path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" /></svg>Dark</button>
+      <button type="button" aria-pressed={theme === "light"} onClick={() => set("light")}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" /></svg>Light</button>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { createResearchSession } from "@/server/actions";
 import { ActivitiesPanel, SourcesPanel, TasksPanel } from "@/components/panels";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
 import { Submit } from "@/components/client";
+import { Icon } from "@/components/icons";
 
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; const sp = await searchParams;
@@ -19,7 +20,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const back = `/companies/${id}`;
   return (<>
     <PageHead title={<>{c.name} <Demo on={c.isDemo} /></>} crumbs={[{ href: "/companies", label: "Companies" }]} sub={<span className="row"><span>{C.label(C.COMPANY_CATEGORY, c.category)}</span><StatusBadge value={c.verificationStatus} opts={C.VERIFICATION} /></span>}
-      actions={<><form action={createResearchSession}><input type="hidden" name="kind" value="company" /><input type="hidden" name="companyId" value={id} /><Submit className="btn">Research company</Submit></form><Link className="btn primary" href={`/companies/${id}/edit`}>Edit</Link></>} />
+      actions={<><form action={createResearchSession}><input type="hidden" name="kind" value="company" /><input type="hidden" name="companyId" value={id} /><Submit className="btn">Research company</Submit></form><Link className="btn primary" href={`/companies/${id}/edit`}><Icon name="edit" />Edit</Link></>} />
     <Flash sp={sp} />
     <div className="split"><div className="stack">
       <Card title="Profile"><dl className="kv">
