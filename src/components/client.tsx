@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function Submit({ children, className = "btn primary", pendingText = "Working…", name, value }: { children: React.ReactNode; className?: string; pendingText?: string; name?: string; value?: string }) {
   const { pending } = useFormStatus();
@@ -41,7 +42,7 @@ export function Hint({ text }: { text: string }) {
       onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); pos ? setPos(null) : show(); }}>
       i
-      {pos ? <span className="hint-bubble" role="tooltip" style={{ top: pos.top, left: pos.left, width: "max-content", maxWidth: Math.min(280, typeof window !== "undefined" ? window.innerWidth - 24 : 280), transform: above ? "translateY(-100%)" : undefined }}>{text}</span> : null}
+      {pos && typeof document !== "undefined" ? createPortal(<span className="hint-bubble" role="tooltip" style={{ top: pos.top, left: pos.left, width: "max-content", maxWidth: Math.min(280, window.innerWidth - 24), transform: above ? "translateY(-100%)" : undefined }}>{text}</span>, document.body) : null}
     </span>
   );
 }

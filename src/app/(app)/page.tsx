@@ -37,13 +37,33 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
     (select count(*) from opportunities where follow_up_date <= current_date and commercial_status not in ('won','lost'))::int as followups_due,
     (select count(*) from research_sessions where status = 'open')::int as research_open`)).rows[0] as Record<string, number>;
 
-  const start: { n: number; title: string; sub: string; href: string; icon: IconName; tone?: "warn" | "bad" | "good" }[] = [
-    { n: k.approvals, title: "Approvals waiting", sub: "Agents or workflows need your decision", href: "/command?tab=approvals", icon: "bell" as IconName, tone: "warn" as const },
-    { n: k.overdue, title: "Overdue tasks", sub: "Past their due date", href: "/tasks?view=overdue", icon: "alert" as IconName, tone: "bad" as const },
-    { n: k.due_today, title: "Due today", sub: "Tasks scheduled for today", href: "/tasks?view=week", icon: "clock" as IconName },
-    { n: k.followups_due, title: "Follow-ups due", sub: "Opportunities to chase now", href: "/opportunities", icon: "opportunities" as IconName },
-    { n: k.disc_review, title: "Discoveries to review", sub: "Save, link, flag or reject", href: "/discoveries", icon: "discover" as IconName },
-    { n: k.research_open, title: "Research in progress", sub: "Open research sessions", href: "/research", icon: "research" as IconName },
+  type Item = { id: string; title: string; meta: string; href: string };
+  const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)).rows as Item[];
+  const lists: Record<string, Item[]> = {
+    approvals: await q(sql`select ap.id, ap.title, concat_ws(' · ', a.name, ap.risk_level || ' risk') as meta, '/command?tab=approvals' as href
+      from approvals ap left join agents a on a.id = ap.agent_id where ap.status = 'pending' order by ap.created_at desc limit 6`),
+    overdue: await q(sql`select t.id, t.title, concat('Due ', to_char(t.due_date, 'DD Mon'), coalesce(' · ' || p.name, ' · ' || o.title, '')) as meta,
+      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
+      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
+      where t.due_date < current_date and t.status in ('open','in_progress') order by t.due_date limit 6`),
+    today: await q(sql`select t.id, t.title, coalesce(p.name, o.title, initcap(t.priority) || ' priority') as meta,
+      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
+      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
+      where t.due_date = current_date and t.status in ('open','in_progress','waiting') limit 6`),
+    followups: await q(sql`select o.id, o.title, concat('Follow-up ', to_char(o.follow_up_date, 'DD Mon'), coalesce(' · ' || v.name, '')) as meta, '/opportunities/' || o.id as href
+      from opportunities o left join ventures v on v.id = o.venture_id where o.follow_up_date <= current_date and o.commercial_status not in ('won','lost') order by o.follow_up_date limit 6`),
+    discoveries: await q(sql`select d.id, d.title, concat_ws(' · ', coalesce(d.source_name, 'No source'), d.location) as meta, '/discoveries/' || d.id as href
+      from discoveries d where d.status in ('new','needs_verification') order by d.created_at desc limit 6`),
+    research: await q(sql`select r.id, r.title, concat('Started ', to_char(r.created_at, 'DD Mon')) as meta, '/research/' || r.id as href
+      from research_sessions r where r.status = 'open' order by r.updated_at desc limit 6`),
+  };
+  const start: { key: string; n: number; title: string; sub: string; href: string; icon: IconName; tone?: "warn" | "bad" | "good"; itemIcon: IconName }[] = [
+    { key: "approvals", n: k.approvals, title: "Approvals waiting", sub: "Agents or workflows need your decision", href: "/command?tab=approvals", icon: "bell" as IconName, tone: "warn" as const, itemIcon: "bell" as IconName },
+    { key: "overdue", n: k.overdue, title: "Overdue tasks", sub: "Past their due date", href: "/tasks?view=overdue", icon: "alert" as IconName, tone: "bad" as const, itemIcon: "agenda" as IconName },
+    { key: "today", n: k.due_today, title: "Due today", sub: "Tasks scheduled for today", href: "/tasks?view=week", icon: "clock" as IconName, itemIcon: "agenda" as IconName },
+    { key: "followups", n: k.followups_due, title: "Follow-ups due", sub: "Opportunities to chase now", href: "/opportunities", icon: "opportunities" as IconName, itemIcon: "opportunities" as IconName },
+    { key: "discoveries", n: k.disc_review, title: "Discoveries to review", sub: "Save, link, flag or reject", href: "/discoveries", icon: "discover" as IconName, itemIcon: "discover" as IconName },
+    { key: "research", n: k.research_open, title: "Research in progress", sub: "Open research sessions", href: "/research", icon: "research" as IconName, itemIcon: "research" as IconName },
   ].filter((x) => x.n > 0);
 
   const bySector = (await db.execute(sql`select coalesce(s.name, 'Unassigned') as label, count(*)::int as n from projects p left join sectors s on s.id = p.sector_id group by 1 order by 2 desc limit 8`)).rows as { label: string; n: number }[];
@@ -75,14 +95,26 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
       {k.demo > 0 ? <div className="notice warn" style={{ marginBottom: 14 }}>{k.demo} demo project(s) loaded · <Link className="link" href="/settings/data">remove in Settings → Data</Link></div> : null}
 
       <div className="split" style={{ marginBottom: 14 }}>
-        <Card title="Start here" sub="Everything that needs your attention, most urgent first. Counted live from your records." tight>
+        <Card title="Start here" sub="Everything that needs your attention, most urgent first. Click a row to see the items; click an item to go straight to the work." tight>
           {start.length ? start.map((s) => (
-            <Link key={s.title} href={s.href} className="start-item">
-              <span className={`ico-tile${s.tone ? ` ${s.tone}` : ""}`}><Icon name={s.icon} size={17} /></span>
-              <span className="n">{s.n}</span>
-              <span className="t"><b>{s.title}</b><small>{s.sub}</small></span>
-              <Icon name="arrow" className="go" />
-            </Link>
+            <details key={s.key} className="start" name="start">
+              <summary className="start-item">
+                <span className={`ico-tile${s.tone ? ` ${s.tone}` : ""}`}><Icon name={s.icon} size={17} /></span>
+                <span className="n">{s.n}</span>
+                <span className="t"><b>{s.title}</b><small>{s.sub}</small></span>
+                <Icon name="arrow" className="go" />
+              </summary>
+              <div className="start-list">
+                {lists[s.key].map((it) => (
+                  <Link key={it.id} href={it.href} className="start-row">
+                    <Icon name={s.itemIcon} className="muted" />
+                    <span className="grow"><span className="ttl" style={{ display: "block" }}>{it.title}</span><span className="meta">{it.meta}</span></span>
+                    <Icon name="arrow" />
+                  </Link>
+                ))}
+                {s.n > lists[s.key].length ? <Link href={s.href} className="start-more">See all {s.n} <Icon name="arrow" size={12} /></Link> : <Link href={s.href} className="start-more">Open section <Icon name="arrow" size={12} /></Link>}
+              </div>
+            </details>
           )) : (
             <Link href="/discoveries" className="start-item">
               <span className="ico-tile good"><Icon name="check" size={17} /></span>

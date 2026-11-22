@@ -13,12 +13,14 @@ async function shoot(theme, viewport, pages, prefix) {
   for (const [name, path] of pages) {
     await p.goto(base + path, { waitUntil: "networkidle" }); await p.waitForTimeout(name.includes("settled") ? 2500 : 1600);
     if (name === "project-hint") { await p.hover(".card#score .hint"); await p.waitForTimeout(250); }
+    if (name.includes("accordion")) { await p.click("details.start:nth-of-type(2) > summary"); await p.waitForTimeout(700); }
     await p.screenshot({ path: `test-artifacts/${prefix}-${name}.png` });
   }
   await ctx.close();
 }
 await shoot("dark", { width: 1440, height: 900 }, [["overview", "/"], ["project-hint", `/projects/${projId}`], ["command", "/command"], ["network", "/companies"]], "dark");
-await shoot("dark", { width: 1440, height: 900 }, [["today-settled", "/"]], "dark2");
+await shoot("dark", { width: 1440, height: 900 }, [["today-settled", "/"], ["today-accordion", "/"], ["discover", "/discoveries"]], "dark2");
+await shoot("light", { width: 1440, height: 900 }, [["today-accordion", "/"], ["discover", "/discoveries"]], "light2");
 await shoot("light", { width: 1440, height: 900 }, [["overview", "/"], ["project", `/projects/${projId}`], ["agents", "/agents"]], "light");
 await shoot("light", { width: 390, height: 844 }, [["overview", "/"]], "mobile-light");
 await shoot("dark", { width: 1280, height: 800 }, [], "dark-login");
