@@ -1,5 +1,7 @@
 # PIP — Status (Stage 1 checkpoint, 22 Nov 2026)
 
+**Live:** https://pip-woad.vercel.app. Hosting: Vercel (team `pip-7fc3`). Database: Supabase (`ioyfjoyeohaezdtzgcqd`, ap-southeast-1 session pooler). Code: github.com/hazymocean-sketch/PIP. The admin account was created 22 Nov 2026 and `/setup` is now locked.
+
 ## Working and tested
 | Area | Status |
 |---|---|
@@ -31,7 +33,7 @@
 - **Calendar, file storage and the Calibro CRM bridge:** deferred by design.
 
 ## Not done yet (next stages)
-1. Deploy: GitHub repo, then Supabase, then Vercel. This needs your accounts (see DEPLOYMENT.md).
+1. ~~Deploy~~: done 22 Nov 2026.
 2. Connect a search provider and run the first live hotels & resorts discovery.
 3. Connect an AI model and move the agents from the rule-based planner to a tool-use loop through the existing gateway.
 4. Automated daily news monitoring (scheduled workflow + search + dedupe).
