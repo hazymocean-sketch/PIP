@@ -6,6 +6,7 @@ import { db } from "@/db";
 import * as S from "@/db/schema";
 import * as C from "@/lib/constants";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
+import { linkedinPeopleSearch } from "@/server/lusha";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
@@ -23,8 +24,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
     <Flash sp={sp} />
     <div className="split"><div className="stack">
       <Card title="Contact details"><dl className="kv">
-        <dt>Email</dt><dd><Val v={k.email} unknown="Not on file" /></dd><dt>Phone</dt><dd><Val v={k.phone} unknown="Not on file" /></dd>
-        <dt>Profile</dt><dd>{k.profileUrl ? <a className="link" href={k.profileUrl} target="_blank" rel="noopener noreferrer">{k.profileUrl}</a> : <span className="unknown">Not on file</span>}</dd>
+        <dt>Email</dt><dd>{k.email ? <a className="link" href={`mailto:${k.email}`}>{k.email}</a> : <span className="unknown">Not on file</span>}</dd><dt>Phone</dt><dd>{k.phone ? <a className="link" href={`tel:${k.phone.replace(/\s+/g, "")}`}>{k.phone}</a> : <span className="unknown">Not on file</span>}</dd>
+        <dt>LinkedIn</dt><dd>{k.profileUrl ? <a className="link" href={k.profileUrl} target="_blank" rel="noopener noreferrer">Open profile</a> : <a className="link" href={linkedinPeopleSearch(k.fullName, co?.name)} target="_blank" rel="noopener noreferrer">Search on LinkedIn</a>}</dd>
         <dt>Source of contact</dt><dd><Val v={k.contactSource} /></dd><dt>Verification</dt><dd><StatusBadge value={k.verificationStatus} opts={C.VERIFICATION} /></dd>
         <dt>Notes</dt><dd className="pre"><Val v={k.notes} unknown="—" /></dd></dl></Card>
       <SourcesPanel target={{ contactId: id }} back={back} />

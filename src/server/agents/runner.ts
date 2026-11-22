@@ -91,6 +91,11 @@ const PLAYBOOKS: Record<string, Playbook> = {
     const s = await api.call("web_search", { query }, `Search for public updates on ${p.name}`);
     const results = ("data" in s && (s.data as any)?.results) || [];
     if (results.length) await api.call("create_discoveries_from_results", { results, sessionId }, "Save search results as discoveries to verify");
+    const linkedCompanies = (await db.execute(sql`select count(*)::int as n from project_companies where project_id = ${p.id}`)).rows[0] as { n: number };
+    const known = (await db.execute(sql`select count(*)::int as n from project_contacts where project_id = ${p.id}`)).rows[0] as { n: number };
+    if (linkedCompanies.n > 0 && known.n < 3) {
+      await api.call("find_decision_makers", { projectId: p.id }, `Find decision-makers at the ${linkedCompanies.n} stakeholder compan${linkedCompanies.n === 1 ? "y" : "ies"} so you can call and qualify`, `Search Lusha for decision-makers on ${p.name}`);
+    }
     for (const g of gapList.slice(0, 4)) {
       await api.call("create_task", { title: `Research ${g.toLowerCase()} — ${p.name}`, projectId: p.id, dueInDays: 3, priority: "medium" }, `Open question: ${g}`);
     }

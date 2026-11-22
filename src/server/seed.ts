@@ -95,6 +95,11 @@ export async function seedBase() {
   for (const [i, a] of AGENT_DEFINITIONS.entries()) {
     await db.insert(agents).values({ ...a, sortOrder: i }).onConflictDoNothing();
   }
+  // Upgrade: make sure the Research agent can propose Lusha lookups (keeps any tools you added yourself)
+  const [research] = await db.select().from(agents).where(eq(agents.key, "research"));
+  if (research && !research.tools.includes("find_decision_makers")) {
+    await db.update(agents).set({ tools: [...research.tools, "find_decision_makers"] }).where(eq(agents.id, research.id));
+  }
   for (const t of SCHEDULED_TEMPLATES) {
     const [exists] = await db.select({ id: workflows.id }).from(workflows).where(eq(workflows.name, t.name));
     if (!exists) {

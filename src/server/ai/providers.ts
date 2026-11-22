@@ -103,9 +103,12 @@ export function integrationStatus(): IntegrationStatus[] {
       note: search ? "Key present. Adapter not yet verified against live API." : "Not connected — set SEARCH_PROVIDER + key. Discovery runs in manual mode." },
     { key: "ai", label: ai?.label ?? "AI model", category: "ai", connected: !!ai, tested: false,
       note: ai ? "Key present. Adapter not yet verified against live API." : "Not connected — agents use the transparent rule-based planner." },
+    { key: "lusha", label: "Lusha (decision-makers)", category: "crm", connected: !!process.env.LUSHA_API_KEY, tested: false,
+      note: process.env.LUSHA_API_KEY ? "Key present. Used for Find decision-makers on projects (search + reveal use credits)." : "Not connected — set LUSHA_API_KEY to look up decision-makers' phones and emails." },
     { key: "email", label: "Email sending", category: "email", connected: false, tested: false, note: "Not built yet. Outreach drafts are created; sending is simulated after approval." },
     { key: "social", label: "LinkedIn / social", category: "social", connected: false, tested: false, note: "Not built yet. Publishing actions are simulated." },
     { key: "calendar", label: "Calendar", category: "calendar", connected: false, tested: false, note: "Not built yet." },
+    { key: "linkedin", label: "LinkedIn", category: "social", connected: true, tested: true, note: "One-click LinkedIn search links on every contact and company (opens in your browser). Automated LinkedIn lookups aren't permitted by LinkedIn." },
     { key: "calibro_crm", label: "Calibro CRM bridge", category: "crm", connected: false, tested: false, note: "Deferred by design. Future optional, approved-records-only API sync." },
   ];
 }

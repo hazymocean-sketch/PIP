@@ -7,6 +7,7 @@ import * as S from "@/db/schema";
 import * as C from "@/lib/constants";
 import { createResearchSession } from "@/server/actions";
 import { ActivitiesPanel, SourcesPanel, TasksPanel } from "@/components/panels";
+import { linkedinCompanySearch } from "@/server/lusha";
 import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/components/ui";
 import { Submit } from "@/components/client";
 import { Icon } from "@/components/icons";
@@ -27,6 +28,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
       <Card title="Profile"><dl className="kv">
         <dt>Location</dt><dd><Val v={[c.location, c.country].filter(Boolean).join(", ")} /></dd>
         <dt>Website</dt><dd>{c.website ? <a className="link" href={c.website} target="_blank" rel="noopener noreferrer">{c.website}</a> : <span className="unknown">Unknown</span>}</dd>
+        <dt>LinkedIn</dt><dd><a className="link" href={linkedinCompanySearch(c.name)} target="_blank" rel="noopener noreferrer">Search on LinkedIn</a></dd>
         <dt>Description</dt><dd className="pre"><Val v={c.description} /></dd>
         <dt>Notes</dt><dd className="pre"><Val v={c.notes} unknown="—" /></dd></dl></Card>
       <Card title="Associated projects" tight>{projects.length ? <div className="list">{projects.map((p) => <Link key={p.id + p.role} href={`/projects/${p.id}`} className="li"><div className="grow"><div className="ttl">{p.name}</div><div className="meta">{C.label(C.COMPANY_CATEGORY, p.role)}</div></div><StatusBadge value={p.status} opts={C.PROJECT_STATUS} /></Link>)}</div> : <Empty title="Not linked to any project">Link this company from a project page.</Empty>}</Card>

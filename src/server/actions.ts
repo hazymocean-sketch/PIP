@@ -473,3 +473,37 @@ export async function loadDemoData() {
   await seedDemo();
   redirect(withFlash("/settings/data", "ok", "Demo data loaded (clearly marked DEMO)"));
 }
+
+
+/* ───────────── Lusha decision-makers ───────────── */
+
+export async function findDecisionMakersAction(projectId: string, fd: FormData) {
+  await requireAdmin();
+  const { findDecisionMakers } = await import("./lusha");
+  const back = `/projects/${projectId}#decision-makers`;
+  let msg: string; let ok = true;
+  try {
+    const r = await findDecisionMakers(projectId, { companyIds: form.uuids(fd, "companyId") });
+    ok = r.added > 0 || (!r.errors.length && r.found > 0);
+    msg = r.searched === 0 ? r.errors[0]
+      : `Searched ${r.searched} compan${r.searched === 1 ? "y" : "ies"}: ${r.added} new decision-maker(s) found${r.found > r.added ? `, ${r.found - r.added} already listed` : ""}${r.credits ? ` · ${r.credits} Lusha credits used` : ""}${r.lowBalance ? " · Lusha balance is low" : ""}${r.errors.length ? ` · ${r.errors.length} issue(s): ${r.errors[0]}` : ""}`;
+    if (!r.found && !r.errors.length) msg = `No people found in Lusha for the linked companies. Check the company names or add their websites (exact domains match best).`;
+  } catch (e) { ok = false; msg = (e as Error).message; }
+  redirect(withFlash(back, ok ? "ok" : "error", msg));
+}
+
+export async function revealContactsAction(projectId: string, fd: FormData) {
+  await requireAdmin();
+  const ids = form.uuids(fd, "candidateId");
+  const back = `/projects/${projectId}#decision-makers`;
+  if (!ids.length) redirect(withFlash(back, "error", "Tick at least one person to reveal"));
+  const { dismissCandidates, revealCandidates } = await import("./lusha");
+  if (fd.get("intent") === "dismiss") { await dismissCandidates(projectId, ids); redirect(withFlash(back, "ok", `${ids.length} removed from suggestions`)); }
+  let msg: string; let ok = true;
+  try {
+    const r = await revealCandidates(projectId, ids);
+    msg = `${r.revealed} contact(s) saved to the project · ${r.withPhone} with phone · ${r.withEmail} with email${r.credits ? ` · ${r.credits} Lusha credits used` : ""}${r.lowBalance ? " · Lusha balance is low" : ""}${r.errors.length ? ` · ${r.errors.length} not found` : ""}`;
+    ok = r.revealed > 0;
+  } catch (e) { ok = false; msg = (e as Error).message; }
+  redirect(withFlash(back, ok ? "ok" : "error", msg));
+}

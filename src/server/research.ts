@@ -154,10 +154,13 @@ export async function saveDiscoveryAsProject(discoveryId: string, values: { name
     await db.insert(sources).values({ projectId: p.id, discoveryId: d.id, url: d.url, normalizedUrl: d.normalizedUrl, sourceName: d.sourceName, title: d.title,
       publishedAt: d.publishedAt, extractedInfo: d.summary, infoStatus: d.infoStatus, supportsField: "existence" });
   }
-  // Link developer if a company with that name already exists
-  if (d.developerName) {
-    const [c] = await db.select().from(companies).where(eq(companies.normalizedName, normalizeName(d.developerName)));
-    if (c) await db.insert(projectCompanies).values({ projectId: p.id, companyId: c.id, role: "developer" }).onConflictDoNothing();
+  // Link reported developer / operator as stakeholder companies (created if new) so decision-makers can be looked up
+  for (const [name, role] of [[d.developerName, "developer"], [d.operatorName, "operator"]] as const) {
+    const n = name?.trim();
+    if (!n || /^(unknown|n\/a|tbc|-)$/i.test(n)) continue;
+    let [c] = await db.select().from(companies).where(eq(companies.normalizedName, normalizeName(n)));
+    if (!c) [c] = await db.insert(companies).values({ name: n, normalizedName: normalizeName(n), category: role, verificationStatus: "unverified", notes: `Created from discovery “${d.title}”.` }).returning();
+    await db.insert(projectCompanies).values({ projectId: p.id, companyId: c.id, role }).onConflictDoNothing();
   }
   for (const v of values.ventureIds) await db.insert(projectVentures).values({ projectId: p.id, ventureId: v }).onConflictDoNothing();
   await db.update(discoveries).set({ status: "saved", projectId: p.id, updatedAt: new Date() }).where(eq(discoveries.id, d.id));

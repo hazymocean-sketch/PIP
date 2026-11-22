@@ -28,7 +28,7 @@ export type ToolDef = {
   description: string;
   kind: "internal" | "external";
   consequential: boolean;
-  integration?: "search" | "email" | "social" | "calendar";
+  integration?: "search" | "email" | "social" | "calendar" | "contacts";
   run: (ctx: ToolContext, input: Record<string, any>) => Promise<ToolResult>;
 };
 
@@ -279,6 +279,17 @@ export const TOOLS: Record<string, ToolDef> = {
     async run(_ctx, { title, body, level, link }) {
       await notify(title, body, level ?? "info", link);
       return { ok: true, message: `Notification posted: ${title}` };
+    },
+  },
+
+  find_decision_makers: {
+    key: "find_decision_makers", label: "Find decision-makers (Lusha)", kind: "external", consequential: true, integration: "contacts",
+    description: "Search Lusha for senior people at the project's stakeholder companies. Uses Lusha credits, so it needs approval. Contact details are revealed separately, only for people you choose.",
+    async run(_ctx, { projectId }) {
+      const { findDecisionMakers, lushaConfigured } = await import("@/server/lusha");
+      if (!lushaConfigured()) return { ok: true, simulated: true, message: "SIMULATED — Lusha not connected. No search was made." };
+      const r = await findDecisionMakers(String(projectId));
+      return { ok: r.errors.length === 0 || r.added > 0, data: r, message: r.searched ? `Lusha: ${r.added} new decision-maker(s) suggested across ${r.searched} compan${r.searched === 1 ? "y" : "ies"}${r.credits ? ` (${r.credits} credits)` : ""}. Choose whom to reveal on the project page.` : r.errors[0] };
     },
   },
 

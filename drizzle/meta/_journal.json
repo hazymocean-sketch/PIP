@@ -15,6 +15,13 @@
       "when": 1795298404071,
       "tag": "0001_extensions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795346965215,
+      "tag": "0002_lusha_candidates",
+      "breakpoints": true
     }
   ]
 }

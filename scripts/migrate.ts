@@ -60,6 +60,14 @@ async function checkIntegrations() {
       result.ai = { ok: false, detail: `${ai.label}: ${m}${/400|402|credit/i.test(m) ? " — likely no credit on the account yet" : ""}`, at };
     }
   } else result.ai = { ok: false, detail: "Not configured (AI_PROVIDER + key missing)", at };
+  if (process.env.LUSHA_API_KEY) {
+    try {
+      const { lusha } = await import("../src/server/lusha");
+      const u = await lusha.usage();
+      const rem = u.credits?.remaining;
+      result.lusha = { ok: true, detail: `Lusha connected${rem !== undefined ? ` · ${rem} of ${u.credits?.total ?? "?"} credits remaining` : ""}${u.plan?.category ? ` · plan: ${u.plan.category}` : ""}`, at };
+    } catch (e) { result.lusha = { ok: false, detail: (e as Error).message, at }; }
+  } else result.lusha = { ok: false, detail: "Not configured (LUSHA_API_KEY missing)", at };
   for (const [k, v] of Object.entries(result)) console.log(`${v.ok ? "✓" : "✗"} integration ${k}: ${v.detail}`);
   await db.insert(appSettings).values({ key: "integration_check", value: result }).onConflictDoUpdate({ target: appSettings.key, set: { value: result, updatedAt: new Date() } });
 }

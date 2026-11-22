@@ -129,6 +129,7 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"),
   verificationStatus: text("verification_status").notNull().default("unverified"),
   contactSource: text("contact_source"),
+  lushaId: text("lusha_id"),
   isDemo: boolean("is_demo").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -218,6 +219,27 @@ export const opportunityContacts = pgTable("opportunity_contacts", {
   contactId: uuid("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
 }, (t) => [primaryKey({ columns: [t.opportunityId, t.contactId] })]);
+
+/** People found via Lusha search for a project, before their contact details are revealed (reveal costs credits). */
+export const contactCandidates = pgTable("contact_candidates", {
+  id: id(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+  companyRole: text("company_role"),
+  lushaId: text("lusha_id").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  jobTitle: text("job_title"),
+  seniority: text("seniority"),
+  departments: jsonb("departments").$type<string[]>(),
+  companyName: text("company_name"),
+  linkedin: text("linkedin"),
+  available: jsonb("available").$type<string[]>(),
+  revealCredits: integer("reveal_credits"),
+  status: text("status").notNull().default("suggested"),
+  contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex("candidates_project_lusha_uq").on(t.projectId, t.lushaId)]);
 
 /* ───────────────────────── Research ───────────────────────── */
 

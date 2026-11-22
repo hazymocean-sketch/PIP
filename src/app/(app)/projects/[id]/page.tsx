@@ -10,6 +10,8 @@ import { addProjectCompany, addProjectContact, deleteEntity, removeProjectCompan
 import { findDuplicateProjects } from "@/server/research";
 import { refOptions } from "@/server/entities";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
+import { DecisionMakers } from "@/components/decision-makers";
+import { linkedinCompanySearch, linkedinPeopleSearch } from "@/server/lusha";
 import { Badge, Card, DeleteForm, Demo, Empty, Flash, Hint, PageHead, Score, StatusBadge, Val, fmtDate, fmtMoney, Sim } from "@/components/ui";
 import { Submit } from "@/components/client";
 import { Icon } from "@/components/icons";
@@ -23,7 +25,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   const ventures = await db.select().from(S.ventures).orderBy(S.ventures.sortOrder);
   const pv = await db.select().from(S.projectVentures).where(eq(S.projectVentures.projectId, id));
   const linked = (await db.execute(sql`select pc.role, pc.notes, c.id, c.name, c.category, c.is_demo from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${id} order by pc.role`)).rows as any[];
-  const people = (await db.execute(sql`select pc.role, k.id, k.full_name, k.position, k.relationship_status, c.name as company from project_contacts pc join contacts k on k.id = pc.contact_id left join companies c on c.id = k.company_id where pc.project_id = ${id}`)).rows as any[];
+  const people = (await db.execute(sql`select pc.role, k.id, k.full_name, k.position, k.relationship_status, k.email, k.phone, k.profile_url, k.contact_source, c.name as company from project_contacts pc join contacts k on k.id = pc.contact_id left join companies c on c.id = k.company_id where pc.project_id = ${id}`)).rows as any[];
   const opps = (await db.execute(sql`select o.*, v.name as venture, st.name as stage from opportunities o left join ventures v on v.id = o.venture_id left join pipeline_stages st on st.id = o.stage_id where o.project_id = ${id} order by o.created_at`)).rows as any[];
   const research = await db.select().from(S.researchSessions).where(eq(S.researchSessions.projectId, id)).orderBy(desc(S.researchSessions.createdAt));
   const runs = (await db.execute(sql`select r.id, r.status, r.summary, r.created_at, r.is_simulated, a.name from agent_runs r join agents a on a.id = r.agent_id where r.target_type = 'project' and r.target_id = ${id} order by r.created_at desc limit 5`)).rows as any[];
@@ -75,7 +77,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
           <Card title="Stakeholder companies" tight>
             {linked.length ? <div className="list">{linked.map((l) => (
               <div key={l.id + l.role} className="li">
-                <div className="grow"><Link className="ttl link" href={`/companies/${l.id}`}>{l.name}</Link> <Demo on={l.is_demo} /><div className="meta">{roleLabel(l.role)}{l.notes ? ` · ${l.notes}` : ""}</div></div>
+                <div className="grow"><Link className="ttl link" href={`/companies/${l.id}`}>{l.name}</Link> <Demo on={l.is_demo} /><div className="meta">{roleLabel(l.role)}{l.notes ? ` · ${l.notes}` : ""} · <a className="link" href={linkedinCompanySearch(l.name)} target="_blank" rel="noopener noreferrer">LinkedIn</a></div></div>
                 <form action={removeProjectCompany.bind(null, id, l.id, l.role)}><button className="btn ghost sm">Unlink</button></form>
               </div>))}</div> : <Empty title="No companies linked">Link the developer, operator, designers and contractors as they are confirmed.</Empty>}
             <form action={addProjectCompany.bind(null, id)} className="row" style={{ padding: "10px 16px", borderTop: "1px solid var(--line)" }}>
@@ -85,6 +87,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
               <Submit className="btn sm">Link</Submit>
             </form>
           </Card>
+
+          <DecisionMakers projectId={id} />
 
           <Card title="Opportunities" sub="One project can carry several opportunities, one per venture or scope" tight actions={<Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link>}>
             {opps.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Opportunity</th><th>Venture</th><th>Stage</th><th>Priority</th><th>Next action</th></tr></thead><tbody>
@@ -133,10 +137,16 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
             </form>
           </Card>
 
-          <Card title="People" tight>
+          <Card title="People" sub="Contacts linked to this project, with phone and email when known. Revealed Lusha contacts land here automatically." tight>
             {people.length ? <div className="list">{people.map((c) => (
-              <div key={c.id} className="li"><div className="grow"><Link className="ttl link" href={`/contacts/${c.id}`}>{c.full_name}</Link><div className="meta">{[c.position, c.company, c.role].filter(Boolean).join(" · ")}</div></div>
-                <form action={removeProjectContact.bind(null, id, c.id)}><button className="btn ghost sm">×</button></form></div>))}</div> : <Empty title="No contacts linked" />}
+              <div key={c.id} className="li"><div className="grow"><Link className="ttl link" href={`/contacts/${c.id}`}>{c.full_name}</Link><div className="meta">{[c.position, c.company].filter(Boolean).join(" · ")}</div>
+                  <div className="row small" style={{ gap: 10, marginTop: 4 }}>
+                    {c.phone ? <a className="link" href={`tel:${c.phone.replace(/\s+/g, "")}`}>{c.phone}</a> : null}
+                    {c.email ? <a className="link" href={`mailto:${c.email}`}>{c.email}</a> : null}
+                    {!c.phone && !c.email ? <span className="faint">No phone or email yet</span> : null}
+                    <a className="link" href={c.profile_url ?? linkedinPeopleSearch(c.full_name, c.company)} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                  </div></div>
+                <form action={removeProjectContact.bind(null, id, c.id)}><button className="btn ghost sm" title="Unlink">×</button></form></div>))}</div> : <Empty title="No contacts linked">Use Decision-makers above to find and reveal people.</Empty>}
             <form action={addProjectContact.bind(null, id)} className="row" style={{ padding: "10px 16px", borderTop: "1px solid var(--line)" }}>
               <select name="contactId" style={{ flex: 1 }}><option value="">Choose contact…</option>{contacts.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
               <input name="role" placeholder="Role on project" style={{ flex: 1 }} />

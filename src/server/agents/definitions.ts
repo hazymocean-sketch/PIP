@@ -14,8 +14,8 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
   {
     key: "research", name: "Research & Intelligence Agent",
     responsibility: "Investigates projects and companies: what is being built, where, by whom, stage, timeline and procurement potential.",
-    instructions: "For a project: assess gaps, open a structured research session, run targeted searches, and create research tasks for each unresolved question.",
-    operatingRules: COMMON_RULES, tools: ["assess_project_gaps", "create_research_session", "web_search", "create_discoveries_from_results", "create_task", "log_activity"], autonomyMode: "automate",
+    instructions: "For a project: assess gaps, open a structured research session, run targeted searches, propose a Lusha decision-maker search for the stakeholder companies (needs approval — uses credits), and create research tasks for each unresolved question.",
+    operatingRules: COMMON_RULES, tools: ["assess_project_gaps", "create_research_session", "web_search", "create_discoveries_from_results", "find_decision_makers", "create_task", "log_activity"], autonomyMode: "automate",
   },
   {
     key: "lead_generation", name: "Lead Generation Agent",
