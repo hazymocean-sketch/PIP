@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
@@ -11,7 +12,7 @@ import { Submit } from "@/components/client";
 import { Badge, Card, Demo, Empty, Flash, Hint, PageHead, Sim, StatusBadge, ago } from "@/components/ui";
 
 export default async function AgentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [a] = await db.select().from(S.agents).where(eq(S.agents.id, id));
   if (!a) notFound();
   const ventures = await db.select().from(S.ventures).orderBy(S.ventures.sortOrder);

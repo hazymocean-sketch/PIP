@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
@@ -11,7 +12,7 @@ import { Submit } from "@/components/client";
 import { Icon } from "@/components/icons";
 
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [c] = await db.select().from(S.companies).where(eq(S.companies.id, id));
   if (!c) notFound();
   const projects = (await db.execute(sql`select p.id, p.name, p.status, pc.role from project_companies pc join projects p on p.id = pc.project_id where pc.company_id = ${id} order by p.name`)).rows as any[];

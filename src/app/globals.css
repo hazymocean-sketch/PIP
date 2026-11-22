@@ -413,3 +413,24 @@ details.start[open]::details-content { block-size: auto; }
 .knob-stat.compact .knob-head { display: flex; align-items: center; gap: 12px; }
 @media (max-width: 1100px) { .dial-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .dial-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .knob-stat.compact .knob { width: 62px; height: 62px; } }
+
+/* ── Live search progress ── */
+.search-progress { border: 1px solid var(--glass-line); border-radius: var(--r-sm); background: var(--glass-hi); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; animation: rise .35s var(--ease) both; }
+.sp-top { display: flex; align-items: center; gap: 10px; }
+.sp-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent-line); animation: sp-ping 1.4s ease-out infinite; flex: none; }
+.sp-pulse.done { background: var(--good); animation: none; box-shadow: 0 0 10px var(--good); }
+@keyframes sp-ping { 0% { box-shadow: 0 0 0 0 var(--accent-line); } 100% { box-shadow: 0 0 0 10px transparent; } }
+.sp-state { font-weight: 600; flex: 1; }
+.sp-pct { font: 300 30px/1 var(--f-num); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.sp-pct small { font-size: 14px; color: var(--muted); margin-left: 2px; }
+.sp-bar { height: 6px; border-radius: 6px; background: var(--bg-3); overflow: hidden; position: relative; }
+.sp-bar > span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent), #8fa6ff, var(--accent)); background-size: 200% 100%; transition: width .6s var(--ease); animation: sp-shimmer 1.6s linear infinite; }
+.sp-bar > span.done { background: var(--good); animation: none; }
+@keyframes sp-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+.sp-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted); }
+.sp-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-eta { font-family: var(--f-num); white-space: nowrap; color: var(--text-2); }
+.sp-stats { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.sp-stats b { font: 500 15px var(--f-num); color: var(--text); margin-right: 3px; }
+.sp-stats .bad b { color: var(--bad); }
+fieldset:disabled { opacity: .55; }

@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -12,7 +13,7 @@ import { Card, DeleteForm, Demo, Empty, Flash, InfoBadge, PageHead, StatusBadge,
 import { Submit } from "@/components/client";
 
 export default async function DiscoveryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [d] = await db.select().from(S.discoveries).where(eq(S.discoveries.id, id));
   if (!d) notFound();
   const [sector] = d.sectorId ? await db.select().from(S.sectors).where(eq(S.sectors.id, d.sectorId)) : [];

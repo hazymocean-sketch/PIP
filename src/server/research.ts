@@ -68,40 +68,72 @@ export function manualSearchLinks(query: string) {
   ];
 }
 
-export async function runDiscovery(params: { title: string; query: string | null; sectorId: string | null; location: string | null; dateFrom: string | null; dateTo: string | null; template: "hotels" | "custom" }) {
+type DiscoveryParams = { title: string; query: string | null; sectorId: string | null; location: string | null; dateFrom: string | null; dateTo: string | null; template: "hotels" | "custom" };
+export const MAX_QUERIES = 6;
+
+/** Step 1: create the session and decide which queries will run. */
+export async function startDiscoverySession(params: DiscoveryParams) {
   const provider = getSearchProvider();
-  const queries = buildQueries(params.query, params.location, params.template);
+  const queries = buildQueries(params.query, params.location, params.template).slice(0, provider ? MAX_QUERIES : 20);
   const [session] = await db.insert(researchSessions).values({
     kind: "discovery", title: params.title, query: queries.join("\n"), sectorId: params.sectorId, location: params.location,
     dateFrom: params.dateFrom, dateTo: params.dateTo, provider: provider?.id ?? "manual", status: provider ? "running" : "open",
   }).returning();
-  let created = 0, skipped = 0, errors: string[] = [];
-  if (provider) {
-    for (const q of queries.slice(0, 6)) {
+  return { session, queries, provider: provider ? { id: provider.id, label: provider.label } : null };
+}
+
+/** Step 2: run one query and save its results (duplicates skipped). */
+export async function runDiscoveryQuery(sessionId: string, q: string) {
+  const provider = getSearchProvider();
+  const [session] = await db.select().from(researchSessions).where(eq(researchSessions.id, sessionId));
+  if (!session) throw new Error("Session not found");
+  let created = 0, skipped = 0; const errors: string[] = [];
+  if (!provider) return { created, skipped, errors: ["No search provider connected"] };
+  try {
+    const results = await provider.search(q, { maxResults: 8 });
+    for (const r of results) {
       try {
-        const results = await provider.search(q, { maxResults: 8 });
-        for (const r of results) {
-          try {
-            const nu = normalizeUrl(r.url);
-            const dup = nu ? await db.select({ id: discoveries.id }).from(discoveries).where(eq(discoveries.normalizedUrl, nu)).limit(1) : [];
-            if (dup.length) { skipped++; continue; }
-            const title = (r.title || r.url).slice(0, 500);
-            const [d] = await db.insert(discoveries).values({
-              researchSessionId: session.id, title, normalizedTitle: normalizeName(title), summary: r.snippet?.slice(0, 4000) ?? null, url: r.url, normalizedUrl: nu,
-              sourceName: r.sourceName ?? sourceFromUrl(r.url), publishedAt: toIsoDate(r.publishedAt), sectorId: params.sectorId, location: params.location, infoStatus: "reported",
-            }).returning();
-            await emitEvent("discovery.created", "discovery", d.id, {});
-            created++;
-          } catch (e) {
-            errors.push(`Could not save “${(r.title || r.url).slice(0, 60)}”: ${((e as Error).message || "").split("\n")[0].slice(0, 120)}`);
-          }
-        }
-      } catch (e) { errors.push(`Search “${q}” failed: ${((e as Error).message || "").slice(0, 160)}`); }
+        const nu = normalizeUrl(r.url);
+        const dup = nu ? await db.select({ id: discoveries.id }).from(discoveries).where(eq(discoveries.normalizedUrl, nu)).limit(1) : [];
+        if (dup.length) { skipped++; continue; }
+        const title = (r.title || r.url).slice(0, 500);
+        const [d] = await db.insert(discoveries).values({
+          researchSessionId: session.id, title, normalizedTitle: normalizeName(title), summary: r.snippet?.slice(0, 4000) ?? null, url: r.url, normalizedUrl: nu,
+          sourceName: r.sourceName ?? sourceFromUrl(r.url), publishedAt: toIsoDate(r.publishedAt), sectorId: session.sectorId, location: session.location, infoStatus: "reported",
+        }).returning();
+        await emitEvent("discovery.created", "discovery", d.id, {});
+        created++;
+      } catch (e) {
+        errors.push(`Could not save “${(r.title || r.url).slice(0, 60)}”: ${((e as Error).message || "").split("\n")[0].slice(0, 120)}`);
+      }
     }
-    await db.update(researchSessions).set({ status: errors.length && !created ? "failed" : "completed",
-      report: `Automated search via ${provider.label}: ${created} new result(s) saved, ${skipped} duplicate(s) skipped.${errors.length ? `\n\nIssues (${errors.length}):\n${errors.join("\n")}` : ""}`, updatedAt: new Date() }).where(eq(researchSessions.id, session.id));
+  } catch (e) { errors.push(`Search “${q}” failed: ${((e as Error).message || "").slice(0, 160)}`); }
+  return { created, skipped, errors };
+}
+
+/** Step 3: write the summary report and close the session. */
+export async function finishDiscoverySession(sessionId: string, totals: { created: number; skipped: number; errors: string[] }) {
+  const provider = getSearchProvider();
+  if (!provider) return;
+  await db.update(researchSessions).set({
+    status: totals.errors.length && !totals.created ? "failed" : "completed",
+    report: `Automated search via ${provider.label}: ${totals.created} new result(s) saved, ${totals.skipped} duplicate(s) skipped.${totals.errors.length ? `\n\nIssues (${totals.errors.length}):\n${totals.errors.join("\n")}` : ""}`,
+    updatedAt: new Date(),
+  }).where(eq(researchSessions.id, sessionId));
+}
+
+/** All-in-one (used by scheduled workflows and tests). */
+export async function runDiscovery(params: DiscoveryParams) {
+  const { session, queries, provider } = await startDiscoverySession(params);
+  const totals = { created: 0, skipped: 0, errors: [] as string[] };
+  if (provider) {
+    for (const q of queries) {
+      const r = await runDiscoveryQuery(session.id, q);
+      totals.created += r.created; totals.skipped += r.skipped; totals.errors.push(...r.errors);
+    }
+    await finishDiscoverySession(session.id, totals);
   }
-  return { session, provider: provider?.id ?? null, created, skipped, errors };
+  return { session, provider: provider?.id ?? null, ...totals };
 }
 
 export async function saveDiscoveryAsProject(discoveryId: string, values: { name: string; ventureIds: string[]; status?: string }) {

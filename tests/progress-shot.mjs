@@ -1,0 +1,14 @@
+import { chromium } from "playwright-core";
+const base = "http://localhost:3100";
+const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addCookies([{ name: "pip_theme", value: "dark", url: base }]);
+const p = await ctx.newPage();
+await p.goto(base + "/login"); await p.fill("#email", "admin@pip.local"); await p.fill("#password", "LocalTest-Pass123");
+await Promise.all([p.waitForURL(base + "/"), p.click("button[type=submit]")]);
+await p.goto(base + "/discoveries");
+await p.fill("input[name=query]", "new upcoming hotels Riyadh " + Date.now()); await p.fill("input[name=location]", "Saudi Arabia");
+await p.click("button:has-text('Run discovery')");
+await p.locator(".sp-q:has-text('Search 3 of')").waitFor({ timeout: 20000 }); await p.waitForTimeout(400);
+await p.screenshot({ path: "test-artifacts/search-progress.png", clip: { x: 250, y: 0, width: 1190, height: 560 } });
+await b.close(); console.log("done");

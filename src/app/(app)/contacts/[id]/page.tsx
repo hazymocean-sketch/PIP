@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
@@ -9,7 +10,7 @@ import { Card, Demo, Empty, Flash, PageHead, StatusBadge, Val } from "@/componen
 import { Icon } from "@/components/icons";
 
 export default async function ContactPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [k] = await db.select().from(S.contacts).where(eq(S.contacts.id, id));
   if (!k) notFound();
   const [co] = k.companyId ? await db.select().from(S.companies).where(eq(S.companies.id, k.companyId)) : [];

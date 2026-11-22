@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -14,7 +15,7 @@ import { Submit } from "@/components/client";
 import { Card, Demo, Empty, Flash, InfoBadge, PageHead, StatusBadge, fmtDate } from "@/components/ui";
 
 export default async function Session({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [s] = await db.select().from(S.researchSessions).where(eq(S.researchSessions.id, id));
   if (!s) notFound();
   const [p] = s.projectId ? await db.select().from(S.projects).where(eq(S.projects.id, s.projectId)) : [];

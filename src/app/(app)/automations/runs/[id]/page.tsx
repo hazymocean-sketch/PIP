@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
@@ -9,7 +10,7 @@ import { Submit } from "@/components/client";
 import { Badge, Card, Demo, Flash, PageHead, StatusBadge, fmtDate } from "@/components/ui";
 
 export default async function WfRun({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [r] = await db.select().from(S.workflowRuns).where(eq(S.workflowRuns.id, id));
   if (!r) notFound();
   const [wf] = await db.select().from(S.workflows).where(eq(S.workflows.id, r.workflowId));

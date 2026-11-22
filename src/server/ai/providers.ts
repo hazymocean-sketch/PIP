@@ -69,8 +69,20 @@ class AnthropicAI implements AIProvider {
   }
 }
 
+/** Local testing only: deterministic fake results with a delay. Never active in production. */
+class FakeSearch implements SearchProvider {
+  id = "fake"; label = "Test search";
+  async search(query: string) {
+    await new Promise((r) => setTimeout(r, 900));
+    const slug = query.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return [1, 2, 3].map((n) => ({ title: `Test result ${n} for ${query}`, url: `https://test.example.com/${slug}/${n}`, snippet: "Fake result for local testing.", publishedAt: "Sat, 22 Nov 2026 10:00:00 GMT" }));
+  }
+}
+
 export function getSearchProvider(): SearchProvider | null {
   const p = (process.env.SEARCH_PROVIDER || "").toLowerCase();
+  if (p === "fake" && process.env.NODE_ENV !== "production" && process.env.ALLOW_FAKE_SEARCH === "1") return new FakeSearch();
+  if (p === "fake" && process.env.ALLOW_FAKE_SEARCH === "1" && process.env.PIP_LOCAL_TEST === "1") return new FakeSearch();
   if (p === "tavily" && process.env.TAVILY_API_KEY) return new TavilySearch(process.env.TAVILY_API_KEY);
   if (p === "brave" && process.env.BRAVE_SEARCH_API_KEY) return new BraveSearch(process.env.BRAVE_SEARCH_API_KEY);
   return null;

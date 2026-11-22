@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
@@ -12,7 +13,7 @@ import { Badge, Card, Demo, Flash, PageHead, Sim, StatusBadge, fmtDate } from "@
 const KIND_TONE: Record<string, "good" | "warn" | "bad" | "info" | "sim" | "outline" | ""> = { start: "outline", plan: "", tool_result: "good", tool_error: "bad", approval_requested: "warn", approved: "good", rejected: "bad", blocked: "bad", finish: "info", error: "bad", warning: "warn", insight: "info" };
 
 export default async function RunPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [r] = await db.select().from(S.agentRuns).where(eq(S.agentRuns.id, id));
   if (!r) notFound();
   const [a] = await db.select().from(S.agents).where(eq(S.agents.id, r.agentId));

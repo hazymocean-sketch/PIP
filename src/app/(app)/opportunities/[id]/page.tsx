@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
@@ -12,7 +13,7 @@ import { Submit } from "@/components/client";
 import { Icon } from "@/components/icons";
 
 export default async function OppPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
-  const { id } = await params; const sp = await searchParams;
+  const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [o] = await db.select().from(S.opportunities).where(eq(S.opportunities.id, id));
   if (!o) notFound();
   const [p] = o.projectId ? await db.select().from(S.projects).where(eq(S.projects.id, o.projectId)) : [];

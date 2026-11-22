@@ -3,7 +3,8 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { DISCOVERY_FIELDS } from "@/lib/fields";
-import { addDiscovery, runDiscoveryAction } from "@/server/actions";
+import { addDiscovery } from "@/server/actions";
+import { DiscoveryRunner } from "@/components/discovery-runner";
 import { loadRefOptions } from "@/server/entities";
 import { getSearchProvider } from "@/server/ai/providers";
 import { FormFields } from "@/components/fields";
@@ -28,16 +29,7 @@ export default async function Discoveries({ searchParams }: { searchParams: Prom
     <Flash sp={sp} />
     <div className="grid g2" style={{ marginBottom: 14 }}>
       <Card title="Run a discovery search" sub={provider ? `Automated via ${provider.label}. Results land in the review list below.` : "Manual mode — no search API connected yet. PIP prepares the query set and one-click search links; you open them and add what you find. Nothing is fabricated."}>
-        <form action={runDiscoveryAction} className="stack" style={{ gap: 10 }}>
-          <div className="fields">
-            <div className="field wide"><label>Research query (optional)</label><input name="query" placeholder="e.g. new beach resort Al Marjan Island" /></div>
-            <div className="field"><label>Template</label><select name="template" defaultValue="hotels"><option value="hotels">Hotels &amp; resorts pilot (8 queries)</option><option value="custom">Only my query</option></select></div>
-            <div className="field"><label>Sector</label><select name="sectorId"><option value="">Any</option>{refs.sectors?.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
-            <div className="field"><label>Location</label><input name="location" list="disc-locs" placeholder="UAE" /><datalist id="disc-locs">{C.LOCATIONS.map((l) => <option key={l} value={l} />)}</datalist></div>
-            <div className="field"><label>Published from</label><input type="date" name="dateFrom" /></div>
-          </div>
-          <div className="row"><Submit>Run discovery</Submit></div>
-        </form>
+        <DiscoveryRunner sectors={refs.sectors ?? []} locations={C.LOCATIONS} providerLabel={provider?.label ?? null} />
       </Card>
       <Card title="Add a discovery manually" sub="Paste a lead from an article, contact or site visit">
         <details><summary>Open form</summary>
