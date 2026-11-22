@@ -90,7 +90,7 @@ export const TOOLS: Record<string, ToolDef> = {
   },
 
   create_discoveries_from_results: {
-    key: "create_discoveries_from_results", label: "Save search results as discoveries", kind: "internal", consequential: true,
+    key: "create_discoveries_from_results", label: "Save search results as discoveries", kind: "internal", consequential: false,
     description: "Store real search results as discoveries for human review (skips duplicates).",
     async run(ctx, { results, sessionId }) {
       const list = (results ?? []) as { title: string; url: string; snippet?: string; publishedAt?: string; sourceName?: string }[];

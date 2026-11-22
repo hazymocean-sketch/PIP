@@ -60,6 +60,18 @@ export const SCORING_SEED = [
   ["commercial_fit", "Commercial fit", 3, "Margin, payment risk, brand value."],
 ] as const;
 
+const SCHEDULED_TEMPLATES = [
+  { name: "Daily discovery — hotels & resorts (UAE)", description: "Every morning: runs the 8 hotels & resorts searches across the UAE, saves new finds for review (duplicates skipped), then suggests ventures for them.",
+    triggerType: "schedule", schedule: { every: "day" as const, at: "06:30" }, mode: "automate", enabled: true,
+    steps: [{ type: "run_discovery" as const, config: { location: "UAE", template: "hotels" } },
+            { type: "run_agent" as const, config: { agentKey: "business_development", instruction: "Route new discoveries" } }] },
+  { name: "Weekly discovery — Ras Al Khaimah & Abu Dhabi", description: "Every Monday morning: deeper hotels & resorts searches for two priority emirates.",
+    triggerType: "schedule", schedule: { every: "week" as const, weekday: 1, at: "06:30" }, mode: "automate", enabled: true,
+    steps: [{ type: "run_discovery" as const, config: { location: "Ras Al Khaimah", template: "hotels" } },
+            { type: "run_discovery" as const, config: { location: "Abu Dhabi", template: "hotels" } },
+            { type: "run_agent" as const, config: { agentKey: "business_development", instruction: "Route new discoveries" } }] },
+];
+
 export async function seedBase() {
   for (const [i, v] of VENTURE_SEED.entries()) {
     const [existing] = await db.select().from(ventures).where(eq(ventures.slug, v.slug));
@@ -83,8 +95,15 @@ export async function seedBase() {
   for (const [i, a] of AGENT_DEFINITIONS.entries()) {
     await db.insert(agents).values({ ...a, sortOrder: i }).onConflictDoNothing();
   }
+  for (const t of SCHEDULED_TEMPLATES) {
+    const [exists] = await db.select({ id: workflows.id }).from(workflows).where(eq(workflows.name, t.name));
+    if (!exists) {
+      const { nextScheduledRun } = await import("./workflows/engine");
+      await db.insert(workflows).values({ ...t, nextRunAt: nextScheduledRun(t.schedule) });
+    }
+  }
   const existingWf = await db.select().from(workflows);
-  if (!existingWf.length) {
+  if (existingWf.length <= SCHEDULED_TEMPLATES.length && !existingWf.some((w) => w.name.startsWith("New project"))) {
     await db.insert(workflows).values([
       { name: "New project → research kickoff", description: "When a project is created, run the Research agent to assess gaps and create research tasks.",
         triggerType: "event", eventType: "project.created", mode: "automate", enabled: false,

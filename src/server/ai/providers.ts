@@ -35,7 +35,7 @@ class TavilySearch implements SearchProvider {
       headers: { "content-type": "application/json", authorization: `Bearer ${this.key}` },
       body: JSON.stringify({ query, max_results: opts.maxResults ?? 10, topic: "news", days: opts.days ?? 30 }),
     });
-    if (!res.ok) throw new Error(`Tavily error ${res.status}`);
+    if (!res.ok) throw new Error(`Tavily error ${res.status}: ${(await res.text()).slice(0, 160)}`);
     const data = (await res.json()) as { results?: { title: string; url: string; content?: string; published_date?: string }[] };
     return (data.results ?? []).map((r) => ({ title: r.title, url: r.url, snippet: r.content, publishedAt: r.published_date ?? null }));
   }
@@ -63,7 +63,7 @@ class AnthropicAI implements AIProvider {
       headers: { "content-type": "application/json", "x-api-key": this.key, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: this.model, max_tokens: opts.maxTokens ?? 1500, system, messages: [{ role: "user", content: prompt }] }),
     });
-    if (!res.ok) throw new Error(`Anthropic error ${res.status}`);
+    if (!res.ok) throw new Error(`Anthropic error ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const data = (await res.json()) as { content?: { type: string; text?: string }[] };
     return (data.content ?? []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
   }

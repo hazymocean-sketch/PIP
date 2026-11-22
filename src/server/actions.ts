@@ -313,7 +313,7 @@ function parseSteps(raw: string | null): S.WorkflowStep[] {
   if (!raw) return [];
   let parsed: unknown;
   try { parsed = JSON.parse(raw); } catch { throw new form.ValidationError("Steps must be valid JSON"); }
-  const allowed = ["condition", "create_task", "notify", "escalate", "request_approval", "run_agent", "update_field", "schedule_follow_up"];
+  const allowed = ["condition", "create_task", "notify", "escalate", "request_approval", "run_agent", "update_field", "schedule_follow_up", "run_discovery"];
   if (!Array.isArray(parsed)) throw new form.ValidationError("Steps must be a JSON array");
   for (const s of parsed) {
     if (!s || typeof s !== "object" || !allowed.includes((s as any).type)) throw new form.ValidationError(`Invalid step type: ${(s as any)?.type}`);

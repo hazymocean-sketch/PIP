@@ -440,7 +440,7 @@ export const approvals = pgTable("approvals", {
 /* ───────────────────────── Workflows ───────────────────────── */
 
 export type WorkflowStep = {
-  type: "condition" | "create_task" | "notify" | "escalate" | "request_approval" | "run_agent" | "update_field" | "schedule_follow_up";
+  type: "condition" | "create_task" | "notify" | "escalate" | "request_approval" | "run_agent" | "update_field" | "schedule_follow_up" | "run_discovery";
   label?: string;
   config: Record<string, unknown>;
 };

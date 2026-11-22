@@ -44,16 +44,17 @@ export function evaluate(cond: Cond, entity: Record<string, any>): boolean {
   }
 }
 
+/** Schedules are expressed in Dubai time (UTC+4, no DST) regardless of the server's timezone. */
+const DUBAI_OFFSET_MS = 4 * 3600_000;
 export function nextScheduledRun(schedule: Workflow["schedule"], from = new Date()): Date | null {
   if (!schedule) return null;
-  const d = new Date(from);
-  if (schedule.every === "hour") { d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1); return d; }
+  if (schedule.every === "hour") { const d = new Date(from); d.setUTCMinutes(0, 0, 0); d.setUTCHours(d.getUTCHours() + 1); return d; }
+  const local = new Date(from.getTime() + DUBAI_OFFSET_MS); // "wall clock" in Dubai, read with UTC getters
   const [hh, mm] = (schedule.at ?? "08:00").split(":").map(Number);
-  d.setSeconds(0, 0); d.setHours(hh, mm);
-  if (schedule.every === "day") { if (d <= from) d.setDate(d.getDate() + 1); return d; }
-  const target = schedule.weekday ?? 1;
-  while (d.getDay() !== target || d <= from) d.setDate(d.getDate() + 1);
-  return d;
+  const d = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), hh, mm, 0, 0));
+  if (schedule.every === "day") { if (d <= local) d.setUTCDate(d.getUTCDate() + 1); }
+  else { const target = schedule.weekday ?? 1; while (d.getUTCDay() !== target || d <= local) d.setUTCDate(d.getUTCDate() + 1); }
+  return new Date(d.getTime() - DUBAI_OFFSET_MS);
 }
 
 async function log(run: Run, message: string, level: "info" | "warning" | "error" | "success" = "info", stepIndex?: number, stepType?: string) {
@@ -169,6 +170,17 @@ async function runStep(run: Run, wf: Workflow, step: WorkflowStep, cfg: Record<s
       });
       await log(run, "Waiting for human approval.", "warning", i, step.type);
       return "wait";
+    }
+    case "run_discovery": {
+      const { runDiscovery } = await import("@/server/research");
+      const loc = (cfg.location as string) || "UAE";
+      const r = await runDiscovery({ title: renderTemplate(cfg.title ?? `Scheduled discovery — ${loc}`, tctx), query: (cfg.query as string) ?? null, sectorId: null,
+        location: loc, dateFrom: null, dateTo: null, template: cfg.template === "custom" ? "custom" : "hotels" });
+      if (!r.provider) { await log(run, "No search provider connected — discovery session prepared for manual work.", "warning", i, step.type); return "next"; }
+      if (r.errors.length && !r.created) throw new Error(`Search failed: ${r.errors[0]}`);
+      await log(run, `Discovery (${loc}): ${r.created} new, ${r.skipped} duplicates skipped${r.errors.length ? `, ${r.errors.length} query errors` : ""}.`, "success", i, step.type);
+      if (r.created) await notify(`${r.created} new discoveries (${loc})`, "Review them in Discover.", "info", "/discoveries");
+      return "next";
     }
     case "run_agent": {
       const { startAgentRun } = await import("@/server/agents/runner");

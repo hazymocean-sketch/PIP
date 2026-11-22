@@ -32,9 +32,10 @@ describe("workflow conditions & schedules", () => {
     expect(evaluate({ field: "n", op: "gte", value: 3 }, { n: 4 })).toBe(true);
   });
   it("computes next run times", () => {
-    const from = new Date("2026-11-23T09:00:00");
-    expect(nextScheduledRun({ every: "day", at: "08:00" }, from)!.getDate()).toBe(24);
-    expect(nextScheduledRun({ every: "week", weekday: 1, at: "10:00" }, from)!.getDate()).toBe(23);
+    const from = new Date("2026-11-23T03:00:00Z"); // 07:00 Dubai, Monday
+    expect(nextScheduledRun({ every: "day", at: "08:00" }, from)!.toISOString()).toBe("2026-11-23T04:00:00.000Z");
+    expect(nextScheduledRun({ every: "day", at: "06:30" }, from)!.toISOString()).toBe("2026-11-24T02:30:00.000Z");
+    expect(nextScheduledRun({ every: "week", weekday: 1, at: "10:00" }, from)!.toISOString()).toBe("2026-11-23T06:00:00.000Z");
   });
 });
 
