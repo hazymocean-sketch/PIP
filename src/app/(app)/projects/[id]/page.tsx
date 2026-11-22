@@ -20,20 +20,24 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [p] = await db.select().from(S.projects).where(eq(S.projects.id, id));
   if (!p) notFound();
-  const [sector] = p.sectorId ? await db.select().from(S.sectors).where(eq(S.sectors.id, p.sectorId)) : [];
-  const [sub] = p.subSectorId ? await db.select().from(S.sectors).where(eq(S.sectors.id, p.subSectorId)) : [];
-  const ventures = await db.select().from(S.ventures).orderBy(S.ventures.sortOrder);
-  const pv = await db.select().from(S.projectVentures).where(eq(S.projectVentures.projectId, id));
-  const linked = (await db.execute(sql`select pc.role, pc.notes, c.id, c.name, c.category, c.is_demo from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${id} order by pc.role`)).rows as any[];
-  const people = (await db.execute(sql`select pc.role, k.id, k.full_name, k.position, k.relationship_status, k.email, k.phone, k.profile_url, k.contact_source, c.name as company from project_contacts pc join contacts k on k.id = pc.contact_id left join companies c on c.id = k.company_id where pc.project_id = ${id}`)).rows as any[];
-  const opps = (await db.execute(sql`select o.*, v.name as venture, st.name as stage from opportunities o left join ventures v on v.id = o.venture_id left join pipeline_stages st on st.id = o.stage_id where o.project_id = ${id} order by o.created_at`)).rows as any[];
-  const research = await db.select().from(S.researchSessions).where(eq(S.researchSessions.projectId, id)).orderBy(desc(S.researchSessions.createdAt));
-  const runs = (await db.execute(sql`select r.id, r.status, r.summary, r.created_at, r.is_simulated, a.name from agent_runs r join agents a on a.id = r.agent_id where r.target_type = 'project' and r.target_id = ${id} order by r.created_at desc limit 5`)).rows as any[];
-  const dups = await findDuplicateProjects(p.name, p.id);
-  const factors = await db.select().from(S.scoringFactors).orderBy(S.scoringFactors.sortOrder);
+  // Everything below depends only on the project row, so fetch it all in parallel.
+  const [[sector], [sub], ventures, pv, linkedR, peopleR, oppsR, research, runsR, dups, factors, companies, contacts] = await Promise.all([
+    p.sectorId ? db.select().from(S.sectors).where(eq(S.sectors.id, p.sectorId)) : Promise.resolve([] as (typeof S.sectors.$inferSelect)[]),
+    p.subSectorId ? db.select().from(S.sectors).where(eq(S.sectors.id, p.subSectorId)) : Promise.resolve([] as (typeof S.sectors.$inferSelect)[]),
+    db.select().from(S.ventures).orderBy(S.ventures.sortOrder),
+    db.select().from(S.projectVentures).where(eq(S.projectVentures.projectId, id)),
+    db.execute(sql`select pc.role, pc.notes, c.id, c.name, c.category, c.is_demo from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${id} order by pc.role`),
+    db.execute(sql`select pc.role, k.id, k.full_name, k.position, k.relationship_status, k.email, k.phone, k.profile_url, k.contact_source, c.name as company from project_contacts pc join contacts k on k.id = pc.contact_id left join companies c on c.id = k.company_id where pc.project_id = ${id}`),
+    db.execute(sql`select o.*, v.name as venture, st.name as stage from opportunities o left join ventures v on v.id = o.venture_id left join pipeline_stages st on st.id = o.stage_id where o.project_id = ${id} order by o.created_at`),
+    db.select().from(S.researchSessions).where(eq(S.researchSessions.projectId, id)).orderBy(desc(S.researchSessions.createdAt)),
+    db.execute(sql`select r.id, r.status, r.summary, r.created_at, r.is_simulated, a.name from agent_runs r join agents a on a.id = r.agent_id where r.target_type = 'project' and r.target_id = ${id} order by r.created_at desc limit 5`),
+    findDuplicateProjects(p.name, p.id),
+    db.select().from(S.scoringFactors).orderBy(S.scoringFactors.sortOrder),
+    refOptions("companies"),
+    refOptions("contacts"),
+  ]);
+  const linked = linkedR.rows as any[], people = peopleR.rows as any[], opps = oppsR.rows as any[], runs = runsR.rows as any[];
   const score = computeScore(factors, p.scoreBreakdown ?? {});
-  const companies = await refOptions("companies");
-  const contacts = await refOptions("contacts");
   const back = `/projects/${id}`;
   const roleLabel = (r: string) => C.label(C.COMPANY_CATEGORY, r);
   const byRole = (r: string) => linked.filter((l) => l.role === r).map((l) => l.name).join(", ") || null;

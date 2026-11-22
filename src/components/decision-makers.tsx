@@ -12,9 +12,13 @@ const ROLE = (r: string | null) => (r ? r.replace(/_/g, " ").replace(/\b\w/g, (m
 export async function DecisionMakers({ projectId, opportunityId }: { projectId: string; opportunityId?: string }) {
   const ctx = opportunityId ? <input type="hidden" name="_opportunityId" value={opportunityId} /> : null;
   const configured = lushaConfigured();
-  const linked = (await db.execute(sql`select distinct c.id, c.name, pc.role from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${projectId} order by c.name`)).rows as { id: string; name: string; role: string }[];
-  const cands = await db.select().from(contactCandidates).where(and(eq(contactCandidates.projectId, projectId), eq(contactCandidates.status, "suggested"))).orderBy(contactCandidates.companyName);
-  const revealedCount = (await db.execute(sql`select count(*)::int as n from contact_candidates where project_id = ${projectId} and status = 'revealed'`)).rows[0] as { n: number };
+  const [linkedR, cands, revealedR] = await Promise.all([
+    db.execute(sql`select distinct c.id, c.name, pc.role from project_companies pc join companies c on c.id = pc.company_id where pc.project_id = ${projectId} order by c.name`),
+    db.select().from(contactCandidates).where(and(eq(contactCandidates.projectId, projectId), eq(contactCandidates.status, "suggested"))).orderBy(contactCandidates.companyName),
+    db.execute(sql`select count(*)::int as n from contact_candidates where project_id = ${projectId} and status = 'revealed'`),
+  ]);
+  const linked = linkedR.rows as { id: string; name: string; role: string }[];
+  const revealedCount = revealedR.rows[0] as { n: number };
   const groups = [...new Set(cands.map((c) => c.companyName ?? "Unknown company"))];
 
   return (

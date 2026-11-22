@@ -23,7 +23,32 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
   const first = user.name && user.name !== "Administrator" ? user.name.split(" ")[0] : null;
   const { greeting, date } = dubaiNow();
 
-  const k = (await db.execute(sql`select
+
+  type Item = { id: string; title: string; meta: string; href: string };
+  const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)).rows as Item[];
+  const listKeys = ["approvals", "overdue", "today", "followups", "discoveries", "research"] as const;
+  const listQueries = [
+    /* approvals */ q(sql`select ap.id, ap.title, concat_ws(' · ', a.name, ap.risk_level || ' risk') as meta, '/command?tab=approvals' as href
+      from approvals ap left join agents a on a.id = ap.agent_id where ap.status = 'pending' order by ap.created_at desc limit 6`),
+    /* overdue */ q(sql`select t.id, t.title, concat('Due ', to_char(t.due_date, 'DD Mon'), coalesce(' · ' || p.name, ' · ' || o.title, '')) as meta,
+      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
+      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
+      where t.due_date < current_date and t.status in ('open','in_progress') order by t.due_date limit 6`),
+    /* today */ q(sql`select t.id, t.title, coalesce(p.name, o.title, initcap(t.priority) || ' priority') as meta,
+      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
+      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
+      where t.due_date = current_date and t.status in ('open','in_progress','waiting') limit 6`),
+    /* followups */ q(sql`select o.id, o.title, concat('Follow-up ', to_char(o.follow_up_date, 'DD Mon'), coalesce(' · ' || v.name, '')) as meta, '/opportunities/' || o.id as href
+      from opportunities o left join ventures v on v.id = o.venture_id where o.follow_up_date <= current_date and o.commercial_status not in ('won','lost') order by o.follow_up_date limit 6`),
+    /* discoveries */ q(sql`select d.id, d.title, concat_ws(' · ', coalesce(d.source_name, 'No source'), d.location) as meta, '/discoveries/' || d.id as href
+      from discoveries d where d.status in ('new','needs_verification') order by d.created_at desc limit 6`),
+    /* research */ q(sql`select r.id, r.title, concat('Started ', to_char(r.created_at, 'DD Mon')) as meta, '/research/' || r.id as href
+      from research_sessions r where r.status = 'open' order by r.updated_at desc limit 6`),
+  ];
+  // All queries run in parallel — one round-trip of latency instead of a dozen.
+  const [lr, r0, r1, r2, r3, r4, r5] = await Promise.all([
+    Promise.all(listQueries),
+    db.execute(sql`select
     (select count(*) from projects)::int as projects,
     (select count(*) from projects where is_demo)::int as demo,
     (select count(*) from discoveries where created_at > now() - interval '7 days')::int as new_disc,
@@ -35,28 +60,26 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
     (select count(*) from tasks where due_date < current_date and status in ('open','in_progress'))::int as overdue,
     (select count(*) from tasks where due_date = current_date and status in ('open','in_progress','waiting'))::int as due_today,
     (select count(*) from opportunities where follow_up_date <= current_date and commercial_status not in ('won','lost'))::int as followups_due,
-    (select count(*) from research_sessions where status = 'open')::int as research_open`)).rows[0] as Record<string, number>;
-
-  type Item = { id: string; title: string; meta: string; href: string };
-  const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)).rows as Item[];
-  const lists: Record<string, Item[]> = {
-    approvals: await q(sql`select ap.id, ap.title, concat_ws(' · ', a.name, ap.risk_level || ' risk') as meta, '/command?tab=approvals' as href
-      from approvals ap left join agents a on a.id = ap.agent_id where ap.status = 'pending' order by ap.created_at desc limit 6`),
-    overdue: await q(sql`select t.id, t.title, concat('Due ', to_char(t.due_date, 'DD Mon'), coalesce(' · ' || p.name, ' · ' || o.title, '')) as meta,
-      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
-      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
-      where t.due_date < current_date and t.status in ('open','in_progress') order by t.due_date limit 6`),
-    today: await q(sql`select t.id, t.title, coalesce(p.name, o.title, initcap(t.priority) || ' priority') as meta,
-      case when t.project_id is not null then '/projects/' || t.project_id when t.opportunity_id is not null then '/opportunities/' || t.opportunity_id else '/tasks/' || t.id || '/edit' end as href
-      from tasks t left join projects p on p.id = t.project_id left join opportunities o on o.id = t.opportunity_id
-      where t.due_date = current_date and t.status in ('open','in_progress','waiting') limit 6`),
-    followups: await q(sql`select o.id, o.title, concat('Follow-up ', to_char(o.follow_up_date, 'DD Mon'), coalesce(' · ' || v.name, '')) as meta, '/opportunities/' || o.id as href
-      from opportunities o left join ventures v on v.id = o.venture_id where o.follow_up_date <= current_date and o.commercial_status not in ('won','lost') order by o.follow_up_date limit 6`),
-    discoveries: await q(sql`select d.id, d.title, concat_ws(' · ', coalesce(d.source_name, 'No source'), d.location) as meta, '/discoveries/' || d.id as href
-      from discoveries d where d.status in ('new','needs_verification') order by d.created_at desc limit 6`),
-    research: await q(sql`select r.id, r.title, concat('Started ', to_char(r.created_at, 'DD Mon')) as meta, '/research/' || r.id as href
-      from research_sessions r where r.status = 'open' order by r.updated_at desc limit 6`),
-  };
+    (select count(*) from research_sessions where status = 'open')::int as research_open`),
+    db.execute(sql`select coalesce(s.name, 'Unassigned') as label, count(*)::int as n from projects p left join sectors s on s.id = p.sector_id group by 1 order by 2 desc limit 8`),
+    db.execute(sql`select coalesce(nullif(city,''), 'Unknown') as label, count(*)::int as n from projects group by 1 order by 2 desc limit 8`),
+    db.execute(sql`
+    select 'task' as kind, t.id, t.title, t.due_date as date, t.priority, t.is_demo from tasks t where t.status in ('open','in_progress') and t.due_date <= current_date + 14
+    union all
+    select 'opportunity', o.id, o.title, o.follow_up_date, o.priority, o.is_demo from opportunities o where o.follow_up_date <= current_date + 14 and o.commercial_status not in ('won','lost')
+    order by date asc limit 8`),
+    db.execute(sql`select id, title, source_name, published_at, url, relevance, is_demo from news_items order by published_at desc nulls last, created_at desc limit 5`),
+    db.execute(sql`select o.id, o.title, o.priority, o.commercial_status, v.name as venture, p.opportunity_score, o.is_demo from opportunities o
+    left join ventures v on v.id = o.venture_id left join projects p on p.id = o.project_id
+    where o.priority in ('high','urgent') and o.commercial_status not in ('won','lost') order by o.priority = 'urgent' desc, p.opportunity_score desc nulls last limit 6`),
+  ]);
+  const k = r0.rows[0] as Record<string, number>;
+  const bySector = r1.rows as { label: string; n: number }[];
+  const byLoc = r2.rows as { label: string; n: number }[];
+  const follow = r3.rows as { kind: string; id: string; title: string; date: string; priority: string; is_demo: boolean }[];
+  const news = r4.rows as any[];
+  const hp = r5.rows as any[];
+  const lists: Record<string, Item[]> = Object.fromEntries(listKeys.map((key, i) => [key, lr[i]]));
   const start: { key: string; n: number; title: string; sub: string; href: string; icon: IconName; tone?: "warn" | "bad" | "good"; itemIcon: IconName }[] = [
     { key: "approvals", n: k.approvals, title: "Approvals waiting", sub: "Agents or workflows need your decision", href: "/command?tab=approvals", icon: "bell" as IconName, tone: "warn" as const, itemIcon: "bell" as IconName },
     { key: "overdue", n: k.overdue, title: "Overdue tasks", sub: "Past their due date", href: "/tasks?view=overdue", icon: "alert" as IconName, tone: "bad" as const, itemIcon: "agenda" as IconName },
@@ -66,17 +89,6 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
     { key: "research", n: k.research_open, title: "Research in progress", sub: "Open research sessions", href: "/research", icon: "research" as IconName, itemIcon: "research" as IconName },
   ].filter((x) => x.n > 0);
 
-  const bySector = (await db.execute(sql`select coalesce(s.name, 'Unassigned') as label, count(*)::int as n from projects p left join sectors s on s.id = p.sector_id group by 1 order by 2 desc limit 8`)).rows as { label: string; n: number }[];
-  const byLoc = (await db.execute(sql`select coalesce(nullif(city,''), 'Unknown') as label, count(*)::int as n from projects group by 1 order by 2 desc limit 8`)).rows as { label: string; n: number }[];
-  const follow = (await db.execute(sql`
-    select 'task' as kind, t.id, t.title, t.due_date as date, t.priority, t.is_demo from tasks t where t.status in ('open','in_progress') and t.due_date <= current_date + 14
-    union all
-    select 'opportunity', o.id, o.title, o.follow_up_date, o.priority, o.is_demo from opportunities o where o.follow_up_date <= current_date + 14 and o.commercial_status not in ('won','lost')
-    order by date asc limit 8`)).rows as { kind: string; id: string; title: string; date: string; priority: string; is_demo: boolean }[];
-  const news = (await db.execute(sql`select id, title, source_name, published_at, url, relevance, is_demo from news_items order by published_at desc nulls last, created_at desc limit 5`)).rows as any[];
-  const hp = (await db.execute(sql`select o.id, o.title, o.priority, o.commercial_status, v.name as venture, p.opportunity_score, o.is_demo from opportunities o
-    left join ventures v on v.id = o.venture_id left join projects p on p.id = o.project_id
-    where o.priority in ('high','urgent') and o.commercial_status not in ('won','lost') order by o.priority = 'urgent' desc, p.opportunity_score desc nulls last limit 6`)).rows as any[];
   const today = new Date().toISOString().slice(0, 10);
 
   return (

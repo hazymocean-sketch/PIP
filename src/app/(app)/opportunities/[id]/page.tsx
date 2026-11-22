@@ -17,11 +17,14 @@ export default async function OppPage({ params, searchParams }: { params: Promis
   const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [o] = await db.select().from(S.opportunities).where(eq(S.opportunities.id, id));
   if (!o) notFound();
-  const [p] = o.projectId ? await db.select().from(S.projects).where(eq(S.projects.id, o.projectId)) : [];
-  const [v] = o.ventureId ? await db.select().from(S.ventures).where(eq(S.ventures.id, o.ventureId)) : [];
-  const [st] = o.stageId ? await db.select().from(S.pipelineStages).where(eq(S.pipelineStages.id, o.stageId)) : [];
-  const dms = (await db.execute(sql`select k.id, k.full_name, k.position, k.email, c.name as company from opportunity_contacts oc join contacts k on k.id = oc.contact_id left join companies c on c.id = k.company_id where oc.opportunity_id = ${id}`)).rows as any[];
-  const contacts = await refOptions("contacts");
+  const [[p], [v], [st], dmsR, contacts] = await Promise.all([
+    o.projectId ? db.select().from(S.projects).where(eq(S.projects.id, o.projectId)) : Promise.resolve([] as (typeof S.projects.$inferSelect)[]),
+    o.ventureId ? db.select().from(S.ventures).where(eq(S.ventures.id, o.ventureId)) : Promise.resolve([] as (typeof S.ventures.$inferSelect)[]),
+    o.stageId ? db.select().from(S.pipelineStages).where(eq(S.pipelineStages.id, o.stageId)) : Promise.resolve([] as (typeof S.pipelineStages.$inferSelect)[]),
+    db.execute(sql`select k.id, k.full_name, k.position, k.email, c.name as company from opportunity_contacts oc join contacts k on k.id = oc.contact_id left join companies c on c.id = k.company_id where oc.opportunity_id = ${id}`),
+    refOptions("contacts"),
+  ]);
+  const dms = dmsR.rows as any[];
   const back = `/opportunities/${id}`;
   return (<>
     <PageHead title={<>{o.title} <Demo on={o.isDemo} /></>} crumbs={[{ href: "/opportunities", label: "Opportunities" }]}

@@ -1,15 +1,19 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { authCore } from "./auth-core";
 
 export const SESSION_COOKIE = "pip_session";
 
-/** Returns the signed-in user or null. Verified against the DB on every call. */
+/** Session lookup, verified against the DB once per request (layout and page share the result). */
+const validate = cache((token: string) => authCore.validateSession(token));
+
+/** Returns the signed-in user or null. */
 export async function currentUser() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return authCore.validateSession(token);
+  return validate(token);
 }
 
 /** Server-side guard for pages and server actions. Never rely on hidden UI alone. */

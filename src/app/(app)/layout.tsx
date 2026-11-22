@@ -18,8 +18,7 @@ async function counts() {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireAdmin();
-  const c = await counts();
+  const [user, c] = await Promise.all([requireAdmin(), counts()]);
   const theme = (await cookies()).get("pip_theme")?.value === "light" ? "light" : "dark";
   return (
     <>
