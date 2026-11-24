@@ -10,6 +10,7 @@ function VentureFields({ v }: { v?: V }) {
   return <div className="fields">
     <div className="field"><label>Name</label><input name="name" defaultValue={v?.name} required /></div>
     <div className="field"><label>Short description</label><input name="description" defaultValue={v?.description ?? ""} /></div>
+    <div className="field"><label>Monthly target (AED) <Hint text="Won value you aim for each month. The CRM page shows progress against it." /></label><input name="monthlyTarget" inputMode="decimal" placeholder="e.g. 500000" defaultValue={v?.monthlyTarget ?? ""} /></div>
     <div className="field wide"><label>Services <Hint text="Agents match new discoveries against these words to suggest which venture a project fits." /></label><textarea name="services" defaultValue={v?.services ?? ""} /></div>
     <div className="field wide"><label>Target clients</label><textarea name="targetClients" defaultValue={v?.targetClients ?? ""} /></div>
     <div className="field wide"><label>Acquisition strategy</label><textarea name="acquisitionStrategy" defaultValue={v?.acquisitionStrategy ?? ""} /></div>

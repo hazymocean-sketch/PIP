@@ -251,6 +251,34 @@ export async function deleteDiscoveryAndNext(id: string, fd: FormData) {
   redirect(withFlash(discBack(fd), "ok", "Discovery deleted"));
 }
 
+/* ───────────── CRM: close / reopen deals ───────────── */
+function crmBack(fd: FormData) {
+  const b = fd.get("_back");
+  return typeof b === "string" && /^\/(opportunities|projects)(\/|\?|$)/.test(b) ? b : "/opportunities";
+}
+export async function closeDealAction(id: string, outcome: "won" | "lost", fd: FormData) {
+  await requireAdmin();
+  const back = crmBack(fd);
+  const { closeDeal, LOST_REASONS } = await import("./live");
+  let reason: string | null = null;
+  if (outcome === "lost") {
+    const pick = form.str(fd, "reason", { max: 80 });
+    if (!pick || !LOST_REASONS.includes(pick)) redirect(withFlash(back, "error", "Pick a reason for losing the deal"));
+    const more = form.str(fd, "reasonNote", { max: 300 });
+    reason = more ? `${pick} — ${more}` : pick;
+  }
+  await closeDeal(id, outcome, reason);
+  revalidatePath("/opportunities"); revalidatePath("/projects");
+  redirect(withFlash(back, "ok", outcome === "won" ? "Deal marked as won 🎉" : "Deal marked as lost"));
+}
+export async function reopenDealAction(id: string, fd: FormData) {
+  await requireAdmin();
+  const { reopenDeal } = await import("./live");
+  await reopenDeal(id);
+  revalidatePath("/opportunities"); revalidatePath("/projects");
+  redirect(withFlash(crmBack(fd), "ok", "Deal re-opened"));
+}
+
 /* ───────────── Research Center ───────────── */
 
 export async function createResearchSession(fd: FormData) {
@@ -428,7 +456,8 @@ export async function saveVenture(id: string | null, fd: FormData) {
     const values = {
       name, description: form.str(fd, "description"), services: form.str(fd, "services"), targetClients: form.str(fd, "targetClients"),
       acquisitionStrategy: form.str(fd, "acquisitionStrategy"), qualificationCriteria: form.str(fd, "qualificationCriteria"),
-      agentInstructions: form.str(fd, "agentInstructions"), servicesConfirmed: form.bool(fd, "servicesConfirmed"), active: form.bool(fd, "active"), updatedAt: new Date(),
+      agentInstructions: form.str(fd, "agentInstructions"), servicesConfirmed: form.bool(fd, "servicesConfirmed"), active: form.bool(fd, "active"),
+      monthlyTarget: form.money(fd, "monthlyTarget"), updatedAt: new Date(),
     };
     if (id) await db.update(S.ventures).set(values).where(eq(S.ventures.id, id));
     else {

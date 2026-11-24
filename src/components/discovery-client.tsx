@@ -61,3 +61,15 @@ export function KeyNav({ prev, next }: { prev: string | null; next: string | nul
   }, [prev, next, router]);
   return null;
 }
+
+/** A <select> that updates one query-string key immediately (keeps the other filters). */
+export function QuerySelect({ name, value, options, base, params, label }: { name: string; value: string; options: { value: string; label: string }[]; base: string; params: Record<string, string>; label: string }) {
+  const router = useRouter();
+  return (
+    <select className="pill-select" aria-label={label} value={value} onChange={(e) => {
+      const p = new URLSearchParams(params); p.delete("ok"); p.delete("error");
+      if (e.target.value) p.set(name, e.target.value); else p.delete(name);
+      router.push(`${base}${p.toString() ? `?${p}` : ""}`);
+    }}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+  );
+}

@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <NavLink href="/research"><Icon name="research" />Research</NavLink>
             <div className="nav-group">Pipeline</div>
             <NavLink href="/projects"><Icon name="projects" />Projects</NavLink>
-            <NavLink href="/opportunities"><Icon name="opportunities" />Opportunities</NavLink>
+            <NavLink href="/opportunities"><Icon name="opportunities" />CRM</NavLink>
             <NavLink href="/companies" match={["/contacts"]}><Icon name="network" />Network</NavLink>
             <div className="nav-group">Execution</div>
             <NavLink href="/tasks" match={["/activities"]} count={c.overdue} alert={c.overdue > 0}><Icon name="agenda" />Agenda</NavLink>

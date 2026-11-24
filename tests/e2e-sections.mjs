@@ -69,7 +69,7 @@ await t("Opportunities: create with venture + stage, pipeline board", async () =
   await p.goto(base + "/opportunities/new"); await p.fill("#f-title", `E2E Opp ${stamp}`);
   await p.selectOption("#f-ventureId", { index: 1 }); await p.selectOption("#f-stageId", { index: 1 });
   await p.click("button:has-text('Create opportunity')"); await p.waitForURL(/\/opportunities\/[0-9a-f-]{36}/);
-  await p.goto(base + "/opportunities"); await p.locator(".tabs a").nth(1).click(); await p.waitForLoadState();
+  await p.goto(base + "/opportunities"); await p.locator("nav[aria-label=Venture] a").nth(1).click(); await p.waitForLoadState(); if (!(await p.locator('.crm-row').count())) throw new Error('CRM list missing');
 });
 await t("Agenda: create task, complete it; log activity", async () => {
   await p.goto(base + "/tasks/new"); await p.fill("#f-title", `E2E Task ${stamp}`); await p.click("button:has-text('Create task')"); await ok();
@@ -105,7 +105,7 @@ await t("Settings: venture, scoring, sectors, integrations, data", async () => {
 });
 await t("Reports render", async () => { await p.goto(base + "/reports"); await p.locator(".bars, .empty").first().waitFor(); });
 await t("Project edit + delete safeguard", async () => {
-  await p.goto(base + "/projects"); await Promise.all([p.waitForURL(/\/projects\/[0-9a-f-]{36}/), p.locator(`a.title:has-text('E2E Saved ${stamp}')`).click()]);
+  await p.goto(base + "/projects"); await Promise.all([p.waitForURL(/\/projects\/[0-9a-f-]{36}/), p.locator(`a.pl-title:has-text('E2E Saved ${stamp}')`).click()]);
   const u = p.url().split("?")[0]; await p.goto(u + "/edit"); await p.click("button:has-text('Save changes')"); await ok();
 });
 await t("Malformed links show not-found, not a crash", async () => {

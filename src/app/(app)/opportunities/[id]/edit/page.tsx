@@ -11,7 +11,7 @@ export default async function Edit({ params, searchParams }: { params: Promise<{
   const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [row] = await db.select().from(opportunities).where(eq(opportunities.id, id));
   if (!row) notFound();
-  return <><PageHead title={`Edit: ${row.title}`} crumbs={[{ href: "/opportunities", label: "Opportunities" }]} />
+  return <><PageHead title={`Edit: ${row.title}`} crumbs={[{ href: "/opportunities", label: "CRM" }]} />
     <Flash sp={sp} />
     <div className="stack"><EntityForm entity="opportunities" id={id} values={row} back={`/opportunities/${id}`} />
     <Card title="Delete"><DeleteForm action={deleteEntity.bind(null, "opportunities", id)} back="/opportunities" /></Card></div></>;

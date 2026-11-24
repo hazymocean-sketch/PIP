@@ -26,9 +26,9 @@ export function Flash({ sp }: { sp: Record<string, string | string[] | undefined
   return <div className={`flash ${error ? "error" : "ok"}`} role="status">{error ?? ok}</div>;
 }
 
-export function Card({ title, sub, actions, children, tight, id }: { title?: ReactNode; sub?: ReactNode; actions?: ReactNode; children: ReactNode; tight?: boolean; id?: string }) {
+export function Card({ title, sub, actions, children, tight, id, className }: { title?: ReactNode; sub?: ReactNode; actions?: ReactNode; children: ReactNode; tight?: boolean; id?: string; className?: string }) {
   return (
-    <section className="card" id={id}>
+    <section className={`card${className ? ` ${className}` : ""}`} id={id}>
       {title || actions ? <div className="card-h"><div className="title-row"><h2>{title}</h2>{typeof sub === "string" ? <Hint text={sub} /> : sub ? <span className="sub">{sub}</span> : null}</div>{actions ? <div className="actions">{actions}</div> : null}</div> : null}
       <div className={`card-b${tight ? " tight" : ""}`}>{children}</div>
     </section>

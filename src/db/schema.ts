@@ -56,6 +56,8 @@ export const ventures = pgTable("ventures", {
   qualificationCriteria: text("qualification_criteria"),
   agentInstructions: text("agent_instructions"),
   servicesConfirmed: boolean("services_confirmed").notNull().default(false),
+  /** Monthly won-value target for the CRM page (AED). */
+  monthlyTarget: numeric("monthly_target", { precision: 16, scale: 2 }),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: createdAt(),
@@ -163,6 +165,13 @@ export const projects = pgTable("projects", {
   scoreNotes: text("score_notes"),
   researchNotes: text("research_notes"),
   verificationStatus: text("verification_status").notNull().default("unverified"),
+  /** "On air": you are actively working this project. */
+  isLive: boolean("is_live").notNull().default(false),
+  liveSince: timestamp("live_since", { withTimezone: true }),
+  /** Deep research started by Go Live: idle | running | done | failed */
+  liveResearchStatus: text("live_research_status").notNull().default("idle"),
+  liveResearchAt: timestamp("live_research_at", { withTimezone: true }),
+  liveResearchNote: text("live_research_note"),
   isDemo: boolean("is_demo").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -208,6 +217,8 @@ export const opportunities = pgTable("opportunities", {
   nextAction: text("next_action"),
   followUpDate: date("follow_up_date"),
   commercialStatus: text("commercial_status").notNull().default("open"),
+  lostReason: text("lost_reason"),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   notes: text("notes"),
   isDemo: boolean("is_demo").notNull().default(false),
   createdAt: createdAt(),

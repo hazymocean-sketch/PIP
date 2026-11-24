@@ -1,3 +1,4 @@
+import { LiveButton } from "@/components/live-button";
 import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -47,6 +48,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
       <PageHead title={<>{p.name} <Demo on={p.isDemo} /></>} crumbs={[{ href: "/projects", label: "Projects" }]}
         sub={<span className="row"><StatusBadge value={p.status} opts={C.PROJECT_STATUS} /><StatusBadge value={p.verificationStatus} opts={C.VERIFICATION} /><Score value={p.opportunityScore} /><span className="muted small">Updated {fmtDate(p.updatedAt, true)}</span></span>}
         actions={<>
+          <LiveButton projectId={id} live={p.isLive} researching={p.liveResearchStatus === "running" && !!p.liveResearchAt && Date.now() - new Date(p.liveResearchAt).getTime() < 180000} name={p.name} />
           <AgentButton agentKey="research" label="Run Research agent" targetType="project" targetId={id} instruction={`Research ${p.name}`} back={back} />
           <Link className="btn" href={`/opportunities/new?projectId=${id}`}>Add opportunity</Link>
           <Link className="btn primary" href={`/projects/${id}/edit`}><Icon name="edit" />Edit</Link>
@@ -94,7 +96,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
 
           <DecisionMakers projectId={id} />
 
-          <Card title="Opportunities" sub="One project can carry several opportunities, one per venture or scope" tight actions={<Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link>}>
+          <Card title="Deals (CRM)" sub="Go live opens one deal per linked venture. Close them as won or lost on the CRM page." tight actions={<Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link>}>
             {opps.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Opportunity</th><th>Venture</th><th>Stage</th><th>Priority</th><th>Next action</th></tr></thead><tbody>
               {opps.map((o) => <tr key={o.id}><td><Link className="title" href={`/opportunities/${o.id}`}>{o.title}</Link></td><td>{o.venture ?? "—"}</td><td>{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</td><td><StatusBadge value={o.priority} opts={C.PRIORITY} /></td><td className="small"><Val v={o.next_action} unknown="None set" /></td></tr>)}
             </tbody></table></div> : <Empty title="No opportunities yet" />}

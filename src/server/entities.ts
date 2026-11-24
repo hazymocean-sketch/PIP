@@ -83,6 +83,12 @@ export async function updateRecord(key: EntityKey, id: string, values: Record<st
   const data = { ...values };
   const d = derived(key, data);
   if (key === "tasks" && (before as any).status === "done" && data.status === "done") d.completedAt = (before as any).completedAt;
+  if (key === "opportunities" && "commercialStatus" in data) {
+    // Keep the CRM's closed date (used for win rate / targets) in step with edits made through the form
+    const closed = ["won", "lost"].includes(data.commercialStatus as string);
+    if (closed && !(before as any).closedAt) d.closedAt = new Date();
+    if (!closed) { d.closedAt = null; d.lostReason = null; }
+  }
   const [row] = (await db.update(e.table).set({ ...data, ...d, ...("updatedAt" in e.table ? { updatedAt: new Date() } : {}) }).where(eq(e.table.id, id)).returning()) as any[];
   if (e.event) {
     const statusField = key === "opportunities" ? ["qualificationStatus", "commercialStatus"] : ["status"];

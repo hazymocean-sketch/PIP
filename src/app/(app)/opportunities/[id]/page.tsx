@@ -27,7 +27,7 @@ export default async function OppPage({ params, searchParams }: { params: Promis
   const dms = dmsR.rows as any[];
   const back = `/opportunities/${id}`;
   return (<>
-    <PageHead title={<>{o.title} <Demo on={o.isDemo} /></>} crumbs={[{ href: "/opportunities", label: "Opportunities" }]}
+    <PageHead title={<>{o.title} <Demo on={o.isDemo} /></>} crumbs={[{ href: "/opportunities", label: "CRM" }]}
       sub={<span className="row"><span>{v?.name ?? "No venture"}</span><StatusBadge value={o.qualificationStatus} opts={C.QUALIFICATION_STATUS} /><StatusBadge value={o.commercialStatus} opts={C.COMMERCIAL_STATUS} /><StatusBadge value={o.priority} opts={C.PRIORITY} /></span>}
       actions={<><AgentButton agentKey="outreach" label="Draft outreach" targetType="opportunity" targetId={id} instruction={o.nextAction ?? "Introduce our services for this opportunity"} ventureId={o.ventureId} back={back} />
         <Link className="btn primary" href={`/opportunities/${id}/edit`}><Icon name="edit" />Edit</Link></>} />
@@ -37,6 +37,7 @@ export default async function OppPage({ params, searchParams }: { params: Promis
         <dt>Project</dt><dd>{p ? <Link className="link" href={`/projects/${p.id}`}>{p.name}</Link> : <span className="unknown">Not linked</span>}</dd>
         <dt>Venture</dt><dd><Val v={v?.name} unknown="Not set" /></dd><dt>Pipeline stage</dt><dd><Val v={st?.name} unknown="Not set" /></dd>
         <dt>Type</dt><dd><Val v={o.opportunityType} /></dd><dt>Potential scope</dt><dd className="pre"><Val v={o.scope} /></dd>
+        {o.commercialStatus === "lost" ? <><dt>Lost reason</dt><dd><Val v={o.lostReason} unknown="Not recorded" /></dd></> : null}
         <dt>Estimated value</dt><dd><Val v={fmtMoney(o.estimatedValue, o.valueCurrency)} /></dd>
         <dt>Next action</dt><dd><Val v={o.nextAction} unknown="None set" /></dd><dt>Follow-up</dt><dd><Val v={fmtDate(o.followUpDate)} unknown="Not scheduled" /></dd>
         <dt>Decision-makers (to identify)</dt><dd className="pre"><Val v={o.decisionMakers} unknown="—" /></dd><dt>Notes</dt><dd className="pre"><Val v={o.notes} unknown="—" /></dd>
