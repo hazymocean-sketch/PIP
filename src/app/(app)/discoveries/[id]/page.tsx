@@ -5,28 +5,47 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as S from "@/db/schema";
 import * as C from "@/lib/constants";
-import { deleteEntity, linkDiscovery, promoteDiscovery, setDiscoveryStatus } from "@/server/actions";
+import { deleteDiscoveryAndNext, linkDiscovery, promoteDiscovery, setDiscoveryStatus } from "@/server/actions";
+import { filterQs, neighbours, parseFilter } from "@/server/discovery-list";
+import { ConfirmButton, KeyNav } from "@/components/discovery-client";
+import { Icon } from "@/components/icons";
 import { findDuplicateDiscoveries, findDuplicateProjects } from "@/server/research";
 import { refOptions } from "@/server/entities";
 import { AgentButton, SourcesPanel } from "@/components/panels";
-import { Card, DeleteForm, Demo, Empty, Flash, InfoBadge, PageHead, StatusBadge, Val, fmtDate, Sim } from "@/components/ui";
+import { Card, Demo, Empty, Flash, InfoBadge, PageHead, StatusBadge, Val, fmtDate, Sim } from "@/components/ui";
 import { Submit } from "@/components/client";
 
 export default async function DiscoveryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const { id } = await params; if (!isUuid(id)) notFound(); const sp = await searchParams;
   const [d] = await db.select().from(S.discoveries).where(eq(S.discoveries.id, id));
   if (!d) notFound();
-  const [sector] = d.sectorId ? await db.select().from(S.sectors).where(eq(S.sectors.id, d.sectorId)) : [];
-  const dupProjects = await findDuplicateProjects(d.title);
-  const dupDisc = await findDuplicateDiscoveries(d.title, d.url, d.id);
-  const ventures = await db.select().from(S.ventures).where(eq(S.ventures.active, true)).orderBy(S.ventures.sortOrder);
-  const projects = await refOptions("projects");
-  const back = `/discoveries/${id}`;
+  const f = parseFilter(sp); const qs = filterQs(f);
+  const [[sector], dupProjects, dupDisc, ventures, projects, nb] = await Promise.all([
+    d.sectorId ? db.select().from(S.sectors).where(eq(S.sectors.id, d.sectorId)) : Promise.resolve([] as (typeof S.sectors.$inferSelect)[]),
+    findDuplicateProjects(d.title),
+    findDuplicateDiscoveries(d.title, d.url, d.id),
+    db.select().from(S.ventures).where(eq(S.ventures.active, true)).orderBy(S.ventures.sortOrder),
+    refOptions("projects"),
+    neighbours(id, f),
+  ]);
+  const back = `/discoveries/${id}${qs}`;
+  const listUrl = `/discoveries${qs}`;
+  const prevUrl = nb.prev ? `/discoveries/${nb.prev}${qs}` : null;
+  const nextUrl = nb.next ? `/discoveries/${nb.next}${qs}` : null;
+  const afterUrl = nextUrl ?? prevUrl ?? listUrl; // where to go once this one is dealt with
   const suggested = new Set(d.suggestedVentureIds ?? []);
   return (<>
-    <PageHead title={<>{d.title} <Demo on={d.isDemo} /></>} crumbs={[{ href: "/discoveries", label: "Discoveries" }]}
+    <PageHead title={<>{d.title} <Demo on={d.isDemo} /></>} crumbs={[{ href: listUrl, label: "Discoveries" }]}
       sub={<span className="row"><StatusBadge value={d.status} opts={C.DISCOVERY_STATUS} /><InfoBadge value={d.infoStatus} /><Sim on={d.isSimulated} /><span className="muted small">Found {fmtDate(d.createdAt, true)}</span></span>}
-      actions={<AgentButton agentKey="business_development" label="Suggest ventures" instruction="Route new discoveries" back={back} />} />
+      actions={<div className="row">
+        <nav className="pager" aria-label="Move between discoveries">
+          <Link className="btn sm" href={prevUrl ?? "#"} aria-disabled={!prevUrl} aria-label="Previous discovery" title="Previous (←)"><Icon name="back" /></Link>
+          <span className="pos">{nb.in_list ? `${nb.pos} / ${nb.total}` : `— / ${nb.total}`}</span>
+          <Link className="btn sm" href={nextUrl ?? "#"} aria-disabled={!nextUrl} aria-label="Next discovery" title="Next (→)"><Icon name="arrow" /></Link>
+        </nav>
+        <AgentButton agentKey="business_development" label="Suggest ventures" instruction="Route new discoveries" back={back} />
+      </div>} />
+    <KeyNav prev={prevUrl} next={nextUrl} />
     <Flash sp={sp} />
     <div className="split"><div className="stack">
       <Card title="What was found"><dl className="kv">
@@ -63,12 +82,16 @@ export default async function DiscoveryPage({ params, searchParams }: { params: 
         <Card title="Review">
           <div className="stack" style={{ gap: 8 }}>
             {d.status !== "needs_verification" ? <form action={setDiscoveryStatus.bind(null, id, "needs_verification")}><Submit className="btn">Flag: needs verification</Submit></form> : <form action={setDiscoveryStatus.bind(null, id, "new")}><Submit className="btn">Clear flag</Submit></form>}
-            {d.status !== "rejected" ? <form action={setDiscoveryStatus.bind(null, id, "rejected")} className="row"><input name="reason" placeholder="Reason (optional)" style={{ flex: 1 }} /><Submit className="btn danger">Reject</Submit></form>
+            {d.status !== "rejected" ? <form action={setDiscoveryStatus.bind(null, id, "rejected")} className="row"><input type="hidden" name="_back" value={afterUrl} /><input name="reason" placeholder="Reason (optional)" style={{ flex: 1 }} /><Submit className="btn danger">{nextUrl || prevUrl ? "Reject & next" : "Reject"}</Submit></form>
               : <form action={setDiscoveryStatus.bind(null, id, "new")}><Submit className="btn">Reopen</Submit></form>}
           </div>
         </Card>
       </> : <Card title="Saved">{d.projectId ? <Link className="btn primary" href={`/projects/${d.projectId}`}>Open project</Link> : null}</Card>}
-      <Card title="Delete"><DeleteForm action={deleteEntity.bind(null, "discoveries", id)} back="/discoveries" /></Card>
+      <Card title="Delete"><form action={deleteDiscoveryAndNext.bind(null, id)} className="row">
+        <input type="hidden" name="_back" value={afterUrl} />
+        <ConfirmButton message={d.status === "saved" ? "Delete this discovery? The project it was saved as stays." : "Delete this discovery permanently?"}><Icon name="trash" />{nextUrl || prevUrl ? "Delete & next" : "Delete"}</ConfirmButton>
+        <span className="muted small">A snapshot is kept in the audit log.</span>
+      </form></Card>
     </div></div>
   </>);
 }

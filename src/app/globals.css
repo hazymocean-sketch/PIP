@@ -434,3 +434,17 @@ details.start[open]::details-content { block-size: auto; }
 .sp-stats b { font: 500 15px var(--f-num); color: var(--text); margin-right: 3px; }
 .sp-stats .bad b { color: var(--bad); }
 fieldset:disabled { opacity: .55; }
+
+/* Discover: bulk select + pager */
+.bulk-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.bulk-bar .btn { margin-left: auto; }
+.li-check { align-items: center; }
+.li-check > input[type=checkbox] { flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
+.li-check > a { display: flex; flex: 1; min-width: 0; gap: 10px; align-items: flex-start; color: inherit; text-decoration: none; }
+.li-check:hover { background: rgba(255,255,255,.04); } [data-theme="light"] .li-check:hover { background: rgba(255,255,255,.45); }
+.li-check:hover .ttl { color: var(--accent); }
+.run-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }
+.run-bar select { max-width: 420px; }
+.pager { display: flex; align-items: center; gap: 8px; }
+.pager .pos { font: 600 12px/1 var(--f-mono, ui-monospace, monospace); letter-spacing: .08em; color: var(--muted); min-width: 64px; text-align: center; }
+.pager .btn[aria-disabled=true] { opacity: .35; pointer-events: none; }

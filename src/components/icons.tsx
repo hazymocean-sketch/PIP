@@ -18,6 +18,7 @@ const P: Record<string, React.ReactNode> = {
   play: <path d="M7 5l12 7-12 7z" />,
   edit: <><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></>,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  back: <path d="M19 12H5M11 6l-6 6 6 6" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   bell: <><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,

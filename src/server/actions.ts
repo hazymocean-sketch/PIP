@@ -200,7 +200,7 @@ export async function addDiscovery(fd: FormData) {
 export async function setDiscoveryStatus(id: string, status: "new" | "needs_verification" | "rejected", fd: FormData) {
   await requireAdmin();
   await db.update(S.discoveries).set({ status, rejectionReason: status === "rejected" ? form.str(fd, "reason", { max: 1000 }) : null, updatedAt: new Date() }).where(eq(S.discoveries.id, id));
-  redirect(withFlash((fd.get("_back") as string) || `/discoveries/${id}`, "ok", status === "rejected" ? "Discovery rejected" : status === "needs_verification" ? "Flagged for verification" : "Reopened"));
+  redirect(withFlash(discBack(fd, `/discoveries/${id}`), "ok", status === "rejected" ? "Discovery rejected" : status === "needs_verification" ? "Flagged for verification" : "Reopened"));
 }
 
 export async function promoteDiscovery(id: string, fd: FormData) {
@@ -215,6 +215,40 @@ export async function linkDiscovery(id: string, fd: FormData) {
   if (!projectId) redirect(withFlash(`/discoveries/${id}`, "error", "Choose a project"));
   await linkDiscoveryToProject(id, projectId);
   redirect(withFlash(`/projects/${projectId}`, "ok", "Discovery linked as evidence to existing project"));
+}
+
+/** Only allow returning to Discover pages. */
+function discBack(fd: FormData, fallback = "/discoveries") {
+  const b = fd.get("_back");
+  return typeof b === "string" && /^\/discoveries(\/|\?|$)/.test(b) ? b : fallback;
+}
+
+export async function deleteDiscoveriesAction(fd: FormData) {
+  await requireAdmin();
+  const back = discBack(fd);
+  const ids = form.uuids(fd, "id");
+  if (!ids.length) redirect(withFlash(back, "error", "Tick at least one discovery first"));
+  const { deleteDiscoveriesWhere } = await import("./discovery-list");
+  const n = await deleteDiscoveriesWhere(sql`d.id in (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})`);
+  revalidatePath("/discoveries");
+  redirect(withFlash(back, "ok", `${n} discover${n === 1 ? "y" : "ies"} deleted${n < ids.length ? " (saved ones are kept)" : ""}`));
+}
+
+export async function deleteSearchRunAction(sessionId: string, fd: FormData) {
+  await requireAdmin();
+  if (!isUuid(sessionId)) redirect(withFlash("/discoveries", "error", "Unknown search"));
+  const { deleteDiscoveriesWhere } = await import("./discovery-list");
+  const n = await deleteDiscoveriesWhere(sql`d.research_session_id = ${sessionId}`);
+  revalidatePath("/discoveries");
+  redirect(withFlash("/discoveries", "ok", `Deleted ${n} discover${n === 1 ? "y" : "ies"} from that search (saved ones are kept)`));
+}
+
+/** Delete one discovery from its page and move straight on to the next one. */
+export async function deleteDiscoveryAndNext(id: string, fd: FormData) {
+  await requireAdmin();
+  await safeDelete(S.discoveries, "discoveries", id);
+  revalidatePath("/discoveries");
+  redirect(withFlash(discBack(fd), "ok", "Discovery deleted"));
 }
 
 /* ───────────── Research Center ───────────── */
