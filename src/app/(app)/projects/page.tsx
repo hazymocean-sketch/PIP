@@ -94,7 +94,7 @@ export default async function Projects({ searchParams }: { searchParams: Promise
                     <div><dt>Expected completion</dt><dd className={p.expected_completion ? "" : "unk"}>{p.expected_completion || "Not found yet"}</dd></div>
                   </>}
                 </dl>
-                {!researching && p.live_research_note && p.is_live ? <div className="pl-note"><span>{p.live_research_note}</span><ResearchAgain projectId={p.id} /></div> : null}
+                {!researching && p.is_live ? <div className="pl-note"><span>{p.live_research_status === "running" ? "Research was interrupted." : p.live_research_note ?? "Not researched yet."}</span><ResearchAgain projectId={p.id} /></div> : null}
               </div>
               <div className="pl-right"><div className="pl-ven">{(p.ventures as string[]).length ? (p.ventures as string[]).map((v) => <Badge key={v} tone="outline">{v}</Badge>) : <span className="faint small">No venture yet</span>}</div></div>
             </div>
