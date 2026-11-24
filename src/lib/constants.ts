@@ -52,6 +52,8 @@ export const QUALIFICATION_STATUS = o([
   ["unqualified", "Unqualified"], ["qualifying", "Qualifying"], ["qualified", "Qualified"], ["disqualified", "Disqualified"],
 ]);
 
+export const MEETING_STATUS = o([["scheduled", "Scheduled"], ["done", "Done"], ["cancelled", "Cancelled"]]);
+
 export const COMMERCIAL_STATUS = o([
   ["open", "Open"], ["proposal", "Proposal / quotation"], ["negotiation", "Negotiation"], ["won", "Won"], ["lost", "Lost"], ["on_hold", "On hold"],
 ]);

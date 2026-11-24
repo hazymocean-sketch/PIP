@@ -132,7 +132,7 @@ export function Tabs({ items, active }: { items: { href: string; label: string; 
 /** Tabs that join related pages into one section (Network, Agenda, Automation). */
 const SECTIONS: Record<string, { href: string; label: string }[]> = {
   network: [{ href: "/companies", label: "Companies" }, { href: "/contacts", label: "Contacts" }],
-  agenda: [{ href: "/tasks", label: "Tasks & follow-ups" }, { href: "/activities", label: "Meetings & activities" }],
+  agenda: [{ href: "/agenda", label: "Calendar" }, { href: "/tasks", label: "Tasks & follow-ups" }, { href: "/activities", label: "Activity log" }],
   automation: [{ href: "/agents", label: "Agents" }, { href: "/automations", label: "Workflows" }],
 };
 export function SectionTabs({ section, active }: { section: keyof typeof SECTIONS; active: string }) {

@@ -88,6 +88,19 @@ export const TASK_FIELDS: FieldDef[] = [
   { name: "notes", label: "Notes", type: "textarea", wide: true },
 ];
 
+export const MEETING_FIELDS: FieldDef[] = [
+  { name: "title", label: "Meeting", type: "text", required: true, wide: true },
+  { name: "startsAt", label: "Starts (Dubai time)", type: "datetime", required: true },
+  { name: "endsAt", label: "Ends (optional)", type: "datetime" },
+  { name: "location", label: "Location / link", type: "text" },
+  { name: "status", label: "Status", type: "select", options: C.MEETING_STATUS },
+  { name: "projectId", label: "Project", type: "ref", ref: "projects" },
+  { name: "opportunityId", label: "Deal", type: "ref", ref: "opportunities" },
+  { name: "companyId", label: "Company", type: "ref", ref: "companies" },
+  { name: "contactId", label: "Contact", type: "ref", ref: "contacts" },
+  { name: "notes", label: "Notes / agenda", type: "textarea", wide: true },
+];
+
 export const ACTIVITY_FIELDS: FieldDef[] = [
   { name: "subject", label: "Subject", type: "text", required: true, wide: true },
   { name: "type", label: "Type", type: "select", options: C.ACTIVITY_TYPE, required: true },

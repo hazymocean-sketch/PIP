@@ -349,6 +349,24 @@ export const sources = pgTable("sources", {
 
 /* ───────────────────────── Activities & tasks ───────────────────────── */
 
+/** Scheduled meetings shown on the Agenda calendar (times stored in UTC, shown in Dubai time). */
+export const meetings = pgTable("meetings", {
+  id: id(),
+  title: text("title").notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  location: text("location"),
+  status: text("status").notNull().default("scheduled"),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+  opportunityId: uuid("opportunity_id").references(() => opportunities.id, { onDelete: "set null" }),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+  contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  isDemo: boolean("is_demo").notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("meetings_starts_idx").on(t.startsAt)]);
+
 export const activities = pgTable("activities", {
   id: id(),
   type: text("type").notNull(),

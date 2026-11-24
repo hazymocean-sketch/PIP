@@ -16,7 +16,7 @@ export default async function Activities({ searchParams }: { searchParams: Promi
     where ${sql.join(conds, sql` and `)} order by a.occurred_at desc limit 500`)).rows as any[];
   return (<>
     <PageHead title="Agenda" sub="Meetings, calls, emails, site visits, research and decisions — each linked to the project, company, contact or opportunity it concerns." actions={<Link className="btn primary" href="/activities/new"><Icon name="plus" />Log activity</Link>} />
-    <SectionTabs section="agenda" active="Meetings & activities" />
+    <SectionTabs section="agenda" active="Activity log" />
     <Flash sp={sp} />
     <form className="filters"><input type="search" name="q" placeholder="Search" defaultValue={sp.q ?? ""} />
       <select name="type" defaultValue={sp.type ?? ""}><option value="">All types</option>{C.ACTIVITY_TYPE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><button className="btn">Filter</button></form>

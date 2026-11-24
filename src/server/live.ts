@@ -186,3 +186,31 @@ export async function reopenDeal(opportunityId: string) {
 }
 
 export const LOST_REASONS = ["Price", "Timing / project delayed", "Went to a competitor", "Spec / product mismatch", "No response", "Project cancelled", "Other"];
+
+/**
+ * Move a deal to another column of its pipeline. Won/Lost columns close the deal (Lost needs a reason);
+ * moving a closed deal back to an open stage re-opens it.
+ */
+export async function moveDeal(opportunityId: string, target: string, reason?: string | null) {
+  const [o] = await db.select().from(S.opportunities).where(eq(S.opportunities.id, opportunityId));
+  if (!o) throw new Error("Deal not found");
+  const closed = ["won", "lost"].includes(o.commercialStatus);
+  if (target.startsWith("stage:")) {
+    const [st] = await db.select().from(S.pipelineStages).where(eq(S.pipelineStages.id, target.slice(6)));
+    if (!st || st.ventureId !== o.ventureId) throw new Error("That stage belongs to another venture");
+    if (st.isWon) return closeDeal(o.id, "won");
+    if (st.isClosed) { if (!reason) throw new Error("Pick a reason for losing the deal"); return closeDeal(o.id, "lost", reason); }
+    if (closed) await reopenDeal(o.id);
+    const [u] = await db.update(S.opportunities).set({ stageId: st.id, commercialStatus: closed ? "open" : o.commercialStatus, updatedAt: new Date() }).where(eq(S.opportunities.id, o.id)).returning();
+    await emitEvent("opportunity.status_changed", "opportunity", o.id, { field: "stageId", from: o.stageId, to: st.id });
+    return u;
+  }
+  const v = target.slice(7);
+  if (!C.COMMERCIAL_STATUS.some((s) => s.value === v)) throw new Error("Unknown status");
+  if (v === "lost" && !reason) throw new Error("Pick a reason for losing the deal");
+  if (v === "won" || v === "lost") return closeDeal(o.id, v, reason);
+  if (closed) await reopenDeal(o.id);
+  const [u] = await db.update(S.opportunities).set({ commercialStatus: v, updatedAt: new Date() }).where(eq(S.opportunities.id, o.id)).returning();
+  await emitEvent("opportunity.status_changed", "opportunity", o.id, { field: "commercialStatus", from: o.commercialStatus, to: v });
+  return u;
+}

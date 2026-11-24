@@ -254,7 +254,7 @@ export async function deleteDiscoveryAndNext(id: string, fd: FormData) {
 /* ───────────── CRM: close / reopen deals ───────────── */
 function crmBack(fd: FormData) {
   const b = fd.get("_back");
-  return typeof b === "string" && /^\/(opportunities|projects)(\/|\?|$)/.test(b) ? b : "/opportunities";
+  return typeof b === "string" && /^\/(opportunities|projects|pipeline)(\/|\?|#|$)/.test(b) ? b : "/opportunities";
 }
 export async function closeDealAction(id: string, outcome: "won" | "lost", fd: FormData) {
   await requireAdmin();
@@ -271,6 +271,24 @@ export async function closeDealAction(id: string, outcome: "won" | "lost", fd: F
   revalidatePath("/opportunities"); revalidatePath("/projects");
   redirect(withFlash(back, "ok", outcome === "won" ? "Deal marked as won 🎉" : "Deal marked as lost"));
 }
+export async function moveDealAction(id: string, target: string, fd: FormData) {
+  await requireAdmin();
+  const back = crmBack(fd);
+  const { moveDeal, LOST_REASONS } = await import("./live");
+  let reason: string | null = null;
+  const losing = target === "status:lost" || (target.startsWith("stage:") && fd.get("_lost") === "1");
+  if (losing) {
+    const pick = form.str(fd, "reason", { max: 80 });
+    if (!pick || !LOST_REASONS.includes(pick)) redirect(withFlash(back, "error", "Pick a reason for losing the deal"));
+    const more = form.str(fd, "reasonNote", { max: 300 });
+    reason = more ? `${pick} — ${more}` : pick;
+  }
+  try { await moveDeal(id, target, reason); }
+  catch (e) { redirect(withFlash(back, "error", (e as Error).message)); }
+  revalidatePath("/pipeline"); revalidatePath("/opportunities"); revalidatePath("/projects");
+  redirect(withFlash(back, "ok", "Deal moved"));
+}
+
 export async function reopenDealAction(id: string, fd: FormData) {
   await requireAdmin();
   const { reopenDeal } = await import("./live");

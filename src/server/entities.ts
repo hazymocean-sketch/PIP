@@ -8,7 +8,7 @@ import * as form from "@/lib/form";
 import { normalizeName, normalizeUrl } from "@/lib/normalize";
 import { emitEvent, safeDelete } from "./core";
 
-export type EntityKey = "projects" | "companies" | "contacts" | "opportunities" | "tasks" | "activities" | "news" | "discoveries" | "sources";
+export type EntityKey = "projects" | "companies" | "contacts" | "opportunities" | "tasks" | "meetings" | "activities" | "news" | "discoveries" | "sources";
 
 type Registry = { table: any; fields: FieldDef[]; event?: string; path: (id: string) => string; listPath: string; label: string; nameOf: (r: any) => string };
 
@@ -18,6 +18,7 @@ export const ENTITIES: Record<EntityKey, Registry> = {
   contacts: { table: S.contacts, fields: F.CONTACT_FIELDS, path: (id) => `/contacts/${id}`, listPath: "/contacts", label: "Contact", nameOf: (r) => r.fullName },
   opportunities: { table: S.opportunities, fields: F.OPPORTUNITY_FIELDS, event: "opportunity", path: (id) => `/opportunities/${id}`, listPath: "/opportunities", label: "Opportunity", nameOf: (r) => r.title },
   tasks: { table: S.tasks, fields: F.TASK_FIELDS, path: () => `/tasks`, listPath: "/tasks", label: "Task", nameOf: (r) => r.title },
+  meetings: { table: S.meetings, fields: F.MEETING_FIELDS, path: (id) => `/meetings/${id}/edit`, listPath: "/agenda", label: "Meeting", nameOf: (r) => r.title },
   activities: { table: S.activities, fields: F.ACTIVITY_FIELDS, path: () => `/activities`, listPath: "/activities", label: "Activity", nameOf: (r) => r.subject },
   news: { table: S.newsItems, fields: F.NEWS_FIELDS, event: "news", path: () => `/news`, listPath: "/news", label: "News item", nameOf: (r) => r.title },
   discoveries: { table: S.discoveries, fields: F.DISCOVERY_FIELDS, event: "discovery", path: (id) => `/discoveries/${id}`, listPath: "/discoveries", label: "Discovery", nameOf: (r) => r.title },
@@ -35,7 +36,14 @@ export function parseFields(fd: FormData, fields: FieldDef[]) {
       case "int": out[f.name] = form.int(fd, f.name); break;
       case "money": out[f.name] = form.money(fd, f.name); break;
       case "date": out[f.name] = form.dateStr(fd, f.name); break;
-      case "datetime": { const s = form.str(fd, f.name); out[f.name] = s ? new Date(s) : new Date(); if (isNaN((out[f.name] as Date).getTime())) throw new form.ValidationError(`${f.label} is invalid`); break; }
+      case "datetime": {
+        // Form inputs have no time zone: read them as Dubai time (UTC+4, no daylight saving).
+        const s = form.str(fd, f.name);
+        if (!s) { if (f.required) throw new form.ValidationError(`${f.label} is required`); out[f.name] = f.name === "occurredAt" ? new Date() : null; break; }
+        const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : `${s.length === 16 ? s + ":00" : s}+04:00`);
+        if (isNaN(d.getTime())) throw new form.ValidationError(`${f.label} is invalid`);
+        out[f.name] = d; break;
+      }
       case "select": { const s = form.str(fd, f.name); if (s !== null) out[f.name] = form.oneOf(fd, f.name, f.options!); else if (f.required) throw new form.ValidationError(`${f.label} is required`); break; }
       case "ref": out[f.name] = form.uuidOrNull(fd, f.name); break;
       case "checkbox": out[f.name] = form.bool(fd, f.name); break;

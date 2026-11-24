@@ -29,6 +29,13 @@
       "when": 1795555423665,
       "tag": "0003_live_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795559957011,
+      "tag": "0004_meetings",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ type Opts = Partial<Record<RefKey, { value: string; label: string; group?: strin
 
 function toInputValue(f: FieldDef, v: unknown): string {
   if (v === null || v === undefined) return "";
-  if (f.type === "datetime") { const d = new Date(v as string); if (isNaN(d.getTime())) return ""; const off = d.getTimezoneOffset(); return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16); }
+  if (f.type === "datetime") { if (typeof v === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(v)) return v; const d = new Date(v as string); if (isNaN(d.getTime())) return ""; return new Date(d.getTime() + 4 * 3600_000).toISOString().slice(0, 16); /* Dubai time */ }
   if (f.type === "money") return String(Number(v));
   return String(v);
 }

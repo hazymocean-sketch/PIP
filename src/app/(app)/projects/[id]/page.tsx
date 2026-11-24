@@ -96,7 +96,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
 
           <DecisionMakers projectId={id} />
 
-          <Card title="Deals (CRM)" sub="Go live opens one deal per linked venture. Close them as won or lost on the CRM page." tight actions={<Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link>}>
+          <Card title="Deals (CRM)" sub="Go live opens one deal per linked venture. Close them as won or lost on the CRM page." tight actions={<><Link className="btn sm" href={`/pipeline?project=${id}`}>View pipeline</Link><Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link></>}>
             {opps.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Opportunity</th><th>Venture</th><th>Stage</th><th>Priority</th><th>Next action</th></tr></thead><tbody>
               {opps.map((o) => <tr key={o.id}><td><Link className="title" href={`/opportunities/${o.id}`}>{o.title}</Link></td><td>{o.venture ?? "—"}</td><td>{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</td><td><StatusBadge value={o.priority} opts={C.PRIORITY} /></td><td className="small"><Val v={o.next_action} unknown="None set" /></td></tr>)}
             </tbody></table></div> : <Empty title="No opportunities yet" />}

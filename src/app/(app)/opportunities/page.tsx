@@ -117,8 +117,8 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Reco
           const overdue = o.follow_up_date && o.follow_up_date < today && s === "live";
           return (
             <div key={o.id} className="crm-row">
-              <div><Link className="p" href={`/opportunities/${o.id}`}>{o.project ?? o.title}</Link> <Demo on={o.is_demo} />
-                <div className="sub">{o.project_id ? <Link className="link" href={`/projects/${o.project_id}`}>{o.city ?? "Project"}</Link> : "No project linked"}</div></div>
+              <div><Link className="p" href={o.project_id ? `/pipeline?project=${o.project_id}` : `/opportunities/${o.id}`} title="Open the pipeline">{o.project ?? o.title}</Link> <Demo on={o.is_demo} />
+                <div className="sub">{o.city ? `${o.city} · ` : ""}<Link className="link" href={`/opportunities/${o.id}`}>Deal details</Link></div></div>
               <div>{o.venture ? <Badge tone="outline">{o.venture}</Badge> : <span className="faint small">—</span>}</div>
               <span className="soft">{o.sector ?? <span className="faint">—</span>}</span>
               <span className="soft">{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</span>

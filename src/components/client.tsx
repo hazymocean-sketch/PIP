@@ -11,16 +11,22 @@ export function Submit({ children, className = "btn primary", pendingText = "Wor
 }
 
 /** Nav link. `match` lists extra path prefixes that should also mark it active (consolidated sections). */
-export function NavLink({ href, children, count, alert, match = [] }: { href: string; children: React.ReactNode; count?: number; alert?: boolean; match?: string[] }) {
+export function NavLink({ href, children, count, alert, match = [], className = "" }: { href: string; children: React.ReactNode; count?: number; alert?: boolean; match?: string[]; className?: string }) {
   const path = usePathname();
   const prefixes = [href, ...match];
   const active = href === "/" ? path === "/" : prefixes.some((p) => path === p || path.startsWith(p + "/"));
   return (
-    <Link href={href} className={active ? "active" : ""} onClick={() => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; }}>
+    <Link href={href} className={[active ? "active" : "", className].filter(Boolean).join(" ")} onClick={() => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; }}>
       <span>{children}</span>
       {count ? <span className={`count${alert ? " alert" : ""}`}>{count}</span> : null}
     </Link>
   );
+}
+
+/** A sidebar section heading that is itself a link (e.g. Pipeline). */
+export function NavGroupLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const path = usePathname();
+  return <Link href={href} className={`nav-group${path === href || path.startsWith(href + "/") ? " on" : ""}`} onClick={() => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; }}>{children}</Link>;
 }
 
 /** Small "i" icon. Hover or focus shows a rectangular note bubble, positioned so it never gets clipped. */

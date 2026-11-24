@@ -1,3 +1,4 @@
+import { DealPipeline, type Deal, type Stage } from "@/components/deal-pipeline";
 import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,6 +25,7 @@ export default async function OppPage({ params, searchParams }: { params: Promis
     db.execute(sql`select k.id, k.full_name, k.position, k.email, c.name as company from opportunity_contacts oc join contacts k on k.id = oc.contact_id left join companies c on c.id = k.company_id where oc.opportunity_id = ${id}`),
     refOptions("contacts"),
   ]);
+  const stages = o.ventureId ? await db.select().from(S.pipelineStages).where(eq(S.pipelineStages.ventureId, o.ventureId)) : [];
   const dms = dmsR.rows as any[];
   const back = `/opportunities/${id}`;
   return (<>
@@ -32,6 +34,10 @@ export default async function OppPage({ params, searchParams }: { params: Promis
       actions={<><AgentButton agentKey="outreach" label="Draft outreach" targetType="opportunity" targetId={id} instruction={o.nextAction ?? "Introduce our services for this opportunity"} ventureId={o.ventureId} back={back} />
         <Link className="btn primary" href={`/opportunities/${id}/edit`}><Icon name="edit" />Edit</Link></>} />
     <Flash sp={sp} />
+    <section className="card deal-group" style={{ marginBottom: 14 }}>
+      <DealPipeline deal={{ id: o.id, title: o.title, venture_id: o.ventureId, venture: v?.name, stage_id: o.stageId, commercial_status: o.commercialStatus, lost_reason: o.lostReason,
+        estimated_value: o.estimatedValue, next_action: o.nextAction, follow_up_date: o.followUpDate, project_id: o.projectId, project: p?.name } as Deal} stages={stages as Stage[]} back={back} />
+    </section>
     <div className="split"><div className="stack">
       <Card title="Opportunity"><dl className="kv">
         <dt>Project</dt><dd>{p ? <Link className="link" href={`/projects/${p.id}`}>{p.name}</Link> : <span className="unknown">Not linked</span>}</dd>

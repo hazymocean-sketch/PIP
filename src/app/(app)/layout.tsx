@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { NavLink, ThemeToggle } from "@/components/client";
+import { NavLink, NavGroupLink, ThemeToggle } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { requireAdmin } from "@/server/auth";
 
@@ -31,17 +31,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
           <nav className="nav">
             <NavLink href="/command" count={c.approvals} alert={c.approvals > 0}><Icon name="command" />Command</NavLink>
-            <NavLink href="/"><Icon name="today" />Today</NavLink>
+            <NavLink href="/" className="nav-today"><Icon name="today" />Today</NavLink>
             <div className="nav-group">Intelligence</div>
             <NavLink href="/discoveries" count={c.discoveries}><Icon name="discover" />Discover</NavLink>
             <NavLink href="/news"><Icon name="news" />News</NavLink>
             <NavLink href="/research"><Icon name="research" />Research</NavLink>
-            <div className="nav-group">Pipeline</div>
+            <NavGroupLink href="/pipeline">Pipeline</NavGroupLink>
             <NavLink href="/projects"><Icon name="projects" />Projects</NavLink>
             <NavLink href="/opportunities"><Icon name="opportunities" />CRM</NavLink>
             <NavLink href="/companies" match={["/contacts"]}><Icon name="network" />Network</NavLink>
             <div className="nav-group">Execution</div>
-            <NavLink href="/tasks" match={["/activities"]} count={c.overdue} alert={c.overdue > 0}><Icon name="agenda" />Agenda</NavLink>
+            <NavLink href="/agenda" match={["/tasks", "/activities", "/meetings"]} count={c.overdue} alert={c.overdue > 0}><Icon name="agenda" />Agenda</NavLink>
             <NavLink href="/agents" match={["/automations"]} count={c.active_runs}><Icon name="automation" />Automation</NavLink>
             <div className="nav-group">Insight</div>
             <NavLink href="/reports"><Icon name="reports" />Reports</NavLink>
