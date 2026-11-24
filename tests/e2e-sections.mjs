@@ -43,7 +43,7 @@ await t("Discover: live progress bar runs to completion", async () => {
 });
 await t("Discover: save a find as project", async () => {
   await p.goto(base + "/discoveries");
-  await p.locator("a.li:has-text('progress test')").first().click();
+  await p.locator(".li-check a:has-text('progress test')").first().click();
   await p.fill("input[name=name]", `E2E Saved ${stamp}`); await p.click("button:has-text('Save as project')");
   await p.waitForURL(/\/projects\//); 
 });
