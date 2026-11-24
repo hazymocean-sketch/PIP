@@ -93,7 +93,6 @@ describe("runtime DB url", () => {
     const { runtimeUrl } = await import("@/db");
     const u = "postgresql://postgres.abc:pw@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres";
     expect(runtimeUrl(u, {})).toContain("pooler.supabase.com:6543/postgres");
-    expect(runtimeUrl(u, { npm_lifecycle_event: "vercel-build" })).toBe(u);
     expect(runtimeUrl(u, { DB_POOL_MODE: "session" })).toBe(u);
     expect(runtimeUrl("postgres://localhost:5432/pip", {})).toBe("postgres://localhost:5432/pip");
   });

@@ -40,11 +40,12 @@ export function describeUrl(raw: string) {
 /**
  * At runtime on Vercel, use Supabase's *transaction* pooler (port 6543) instead of the session pooler (5432).
  * Session mode caps the whole project at 15 clients, which several serverless instances exhaust quickly
- * ("EMAXCONNSESSION max clients reached"). Build-time scripts (migrations) keep session mode.
+ * ("EMAXCONNSESSION max clients reached") — and then even the build can't connect to migrate.
+ * Migrations run in a single transaction, so transaction mode works for them too.
  * Override with DB_POOL_MODE=session.
  */
 export function runtimeUrl(url: string, env: Record<string, string | undefined> = process.env) {
-  if (env.DB_POOL_MODE === "session" || env.npm_lifecycle_event) return url;
+  if (env.DB_POOL_MODE === "session") return url;
   return url.replace(/(\.pooler\.supabase\.com):5432(?=[/?]|$)/, "$1:6543");
 }
 
