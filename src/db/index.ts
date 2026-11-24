@@ -37,14 +37,29 @@ export function describeUrl(raw: string) {
   ].join(", ");
 }
 
+/**
+ * At runtime on Vercel, use Supabase's *transaction* pooler (port 6543) instead of the session pooler (5432).
+ * Session mode caps the whole project at 15 clients, which several serverless instances exhaust quickly
+ * ("EMAXCONNSESSION max clients reached"). Build-time scripts (migrations) keep session mode.
+ * Override with DB_POOL_MODE=session.
+ */
+export function runtimeUrl(url: string, env: Record<string, string | undefined> = process.env) {
+  if (env.DB_POOL_MODE === "session" || env.npm_lifecycle_event) return url;
+  return url.replace(/(\.pooler\.supabase\.com):5432(?=[/?]|$)/, "$1:6543");
+}
+
 function makePool() {
-  const url = resolveDatabaseUrl();
+  const url = runtimeUrl(resolveDatabaseUrl());
   const isLocal = /localhost|127\.0\.0\.1|host=\//.test(url);
-  return new Pool({
+  const p = new Pool({
     connectionString: url,
-    max: Number(process.env.DB_POOL_MAX ?? 5),
+    max: Number(process.env.DB_POOL_MAX ?? (isLocal ? 5 : 3)),
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
     ssl: isLocal ? undefined : { rejectUnauthorized: false },
   });
+  p.on("error", () => { /* idle client dropped by the pooler — the pool replaces it */ });
+  return p;
 }
 
 export const pool = globalForDb.pipPool ?? makePool();
