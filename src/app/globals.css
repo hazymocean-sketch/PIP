@@ -288,8 +288,6 @@ summary.btn::before { content: none !important; }
 @media (max-width: 1100px) { .g4, .g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .split { grid-template-columns: minmax(0, 1fr); } .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   .shell { grid-template-columns: 1fr; }
-  .sidebar { position: fixed; z-index: 30; left: 0; top: 0; width: 264px; transform: translateX(-100%); transition: transform .2s var(--ease); }
-  #nav-toggle:checked ~ .shell .sidebar { transform: translateX(0); box-shadow: 0 0 0 100vmax rgba(0,0,0,.5); }
   .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--bg-1); position: sticky; top: 0; z-index: 20; }
   .topbar label { cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; }
   .topbar strong { font-family: var(--f-display); letter-spacing: -.02em; }
@@ -621,3 +619,68 @@ a.nav-group:hover, a.nav-group.on { color: #8FA9FF; text-shadow: 0 0 12px rgba(6
 .deal-group:has(details[open]), .deal:has(details[open]) { z-index: 40; }
 .strip details > summary::before { content: none; }
 .cal-col-b .more { font-size: 11px; color: var(--muted); text-decoration: none; padding: 2px 4px; }
+
+/* ── Sidebar: phone drawer + desktop collapse ───────────────── */
+.nav-toggle { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.nav-close, .nav-scrim, .nav-open { display: none; }
+.brand { position: relative; }
+.brand-text { min-width: 0; flex: 1; }
+.nav-collapse { margin-left: auto; flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; }
+.nav-collapse:hover { color: var(--text); border-color: var(--line-2); background: var(--glass-hi); }
+
+@media (min-width: 761px) {
+  .shell { transition: grid-template-columns .22s var(--ease); }
+  .shell.nav-collapsed { grid-template-columns: 84px 1fr; }
+  .nav-collapsed .sidebar { padding: 16px 10px; overflow-x: hidden; }
+  .nav-collapsed .brand { flex-direction: column; gap: 10px; padding: 2px 0 14px; }
+  .nav-collapsed .brand-text { display: none; }
+  .nav-collapsed .nav-collapse { margin: 0; }
+  .nav-collapsed .nav-group { font-size: 0; padding: 0; height: 1px; margin: 12px 14px; background: var(--line-2); text-shadow: none; }
+  .nav-collapsed a.nav-group { background: var(--accent); box-shadow: 0 0 8px var(--accent); height: 2px; border-radius: 2px; }
+  .nav-collapsed .nav a { justify-content: center; padding: 10px 0; }
+  .nav-collapsed .nav a > span:first-child { font-size: 0; gap: 0; }
+  .nav-collapsed .nav a .icon { width: 18px; height: 18px; }
+  .nav-collapsed .nav .count { position: absolute; top: 2px; right: 6px; font-size: 9px; line-height: 14px; min-width: 16px; padding: 0 4px; }
+  .nav-collapsed .nav a.active::before { left: -10px; }
+  .nav-collapsed .sidebar-foot { padding: 12px 0 2px; align-items: center; }
+  .nav-collapsed .theme-toggle button { font-size: 0; padding: 6px 7px; }
+  .nav-collapsed .theme-toggle button svg { margin: 0 !important; }
+  .nav-collapsed .sidebar-foot .row { flex-direction: column; gap: 8px; }
+  .nav-collapsed .sidebar-foot .row > span { display: none; }
+}
+
+@media (max-width: 760px) {
+  .nav-collapse { display: none; }
+  .nav-open { display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 40px; height: 40px; margin-left: -8px; padding: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .nav-open span { display: block; height: 1.6px; border-radius: 2px; background: var(--text); }
+  .sidebar { position: fixed; z-index: 50; left: 0; top: 0; bottom: 0; margin: 0; width: min(290px, 84vw); height: 100dvh; border-radius: 0 var(--r) var(--r) 0;
+    transform: translateX(-105%); visibility: hidden; transition: transform .22s var(--ease), visibility 0s linear .22s;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: max(18px, env(safe-area-inset-bottom));
+    background: var(--bg-1); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .nav-toggle:checked ~ .shell .sidebar { transform: translateX(0); visibility: visible; transition: transform .22s var(--ease), visibility 0s; }
+  .nav-scrim { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .2s; -webkit-tap-highlight-color: transparent; }
+  .nav-toggle:checked ~ .nav-scrim { opacity: 1; pointer-events: auto; }
+  .nav-close { display: grid; place-items: center; margin-left: auto; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .nav a { padding: 11px 10px; }
+  html:has(.nav-toggle:checked), body:has(.nav-toggle:checked) { overflow: hidden; }
+}
+/* Agenda: tasks with a tick-to-complete box */
+.cal-task { display: flex; gap: 6px; align-items: flex-start; min-width: 0; }
+.cal-task form { flex: none; }
+.cal-tick { width: 16px; height: 16px; margin-top: 5px; border-radius: 5px; border: 1.5px solid var(--warn); background: none; cursor: pointer; padding: 0; transition: background .15s; }
+.cal-tick:hover { background: var(--warn); box-shadow: 0 0 8px rgba(232,177,75,.5); }
+.cal-task .cal-chip { flex: 1; min-width: 0; border-left: 0; }
+.cal-chip.task .tt { white-space: normal; }
+.cal-chip.task.compact .tt { white-space: nowrap; }
+.cal-cell .cal-tick { margin-top: 3px; width: 13px; height: 13px; border-radius: 4px; }
+.cal-cell .adds { display: inline-flex; gap: 2px; }
+.cal-cell .add { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; padding: 2px 5px; border-radius: 5px; }
+.cal-cell .add:hover { background: var(--glass-hi); color: var(--accent); }
+.cal-adds { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.cal-adds .cal-add { margin: 0; }
+@media (hover: none) { .cal-cell .add { opacity: 1; } .cal-col .cal-add { border-color: var(--line-2); color: var(--muted); } }
+@media (min-width: 761px) {
+  .nav-collapsed .nav a.nav-group { display: block; padding: 0; height: 2px; min-height: 0; margin: 12px 18px; border: 0; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .nav-collapsed .nav a.nav-group::before { display: none; }
+  .brand-name { white-space: nowrap; font-size: 13.5px; }
+}

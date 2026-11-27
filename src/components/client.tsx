@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export function Submit({ children, className = "btn primary", pendingText = "Working…", name, value }: { children: React.ReactNode; className?: string; pendingText?: string; name?: string; value?: string }) {
@@ -15,12 +15,40 @@ export function NavLink({ href, children, count, alert, match = [], className = 
   const path = usePathname();
   const prefixes = [href, ...match];
   const active = href === "/" ? path === "/" : prefixes.some((p) => path === p || path.startsWith(p + "/"));
+  const text = (Array.isArray(children) ? children : [children]).filter((c) => typeof c === "string").join(" ");
   return (
-    <Link href={href} className={[active ? "active" : "", className].filter(Boolean).join(" ")} onClick={() => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; }}>
+    <Link href={href} title={text || undefined} className={[active ? "active" : "", className].filter(Boolean).join(" ")} onClick={() => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; }}>
       <span>{children}</span>
       {count ? <span className={`count${alert ? " alert" : ""}`}>{count}</span> : null}
     </Link>
   );
+}
+
+const closeMenu = () => { const t = document.getElementById("nav-toggle") as HTMLInputElement | null; if (t) t.checked = false; };
+
+/** Phone menu housekeeping: Esc closes it, and it closes after navigating (incl. back/forward). */
+export function NavWatcher() {
+  const path = usePathname();
+  useEffect(() => { closeMenu(); }, [path]);
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => { if (e.key === "Escape") closeMenu(); };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
+  return null;
+}
+
+/** Desktop: fold the sidebar down to icons (remembered in a cookie). */
+export function NavCollapse({ initial }: { initial: boolean }) {
+  const [collapsed, setCollapsed] = useState(initial);
+  const toggle = () => {
+    const next = !collapsed; setCollapsed(next);
+    document.querySelector(".shell")?.classList.toggle("nav-collapsed", next);
+    document.cookie = `pip_nav=${next ? "collapsed" : "open"}; path=/; max-age=31536000; samesite=lax`;
+  };
+  return <button type="button" className="nav-collapse" onClick={toggle} aria-pressed={collapsed} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M9 4.5v15" />{collapsed ? <path d="M13 10l2 2-2 2" /> : <path d="M15 10l-2 2 2 2" />}</svg>
+  </button>;
 }
 
 /** A sidebar section heading that is itself a link (e.g. Pipeline). */

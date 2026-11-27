@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { NavLink, NavGroupLink, ThemeToggle } from "@/components/client";
+import { NavCollapse, NavLink, NavGroupLink, NavWatcher, ThemeToggle } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { requireAdmin } from "@/server/auth";
 
@@ -19,15 +19,20 @@ async function counts() {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, c] = await Promise.all([requireAdmin(), counts()]);
-  const theme = (await cookies()).get("pip_theme")?.value === "light" ? "light" : "dark";
+  const jar = await cookies();
+  const theme = jar.get("pip_theme")?.value === "light" ? "light" : "dark";
+  const collapsed = jar.get("pip_nav")?.value === "collapsed";
   return (
     <>
-      <input type="checkbox" id="nav-toggle" hidden />
-      <div className="shell">
-        <aside className="sidebar">
+      <input type="checkbox" id="nav-toggle" className="nav-toggle" aria-hidden="true" tabIndex={-1} />
+      <NavWatcher />
+      <div className={`shell${collapsed ? " nav-collapsed" : ""}`}>
+        <aside className="sidebar" aria-label="Main navigation">
           <div className="brand">
             <div className="brand-mark">PIP</div>
-            <div><div className="brand-name">Projects Intelligence</div><div className="brand-sub">UAE · GCC</div></div>
+            <div className="brand-text"><div className="brand-name">Projects Intelligence</div><div className="brand-sub">UAE · GCC</div></div>
+            <NavCollapse initial={collapsed} />
+            <label htmlFor="nav-toggle" className="nav-close" aria-label="Close menu">✕</label>
           </div>
           <nav className="nav">
             <NavLink href="/command" count={c.approvals} alert={c.approvals > 0}><Icon name="command" />Command</NavLink>
@@ -56,10 +61,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </aside>
         <div className="main">
-          <div className="topbar"><label htmlFor="nav-toggle" aria-label="Open navigation">☰</label><strong>PIP</strong></div>
+          <div className="topbar"><label htmlFor="nav-toggle" aria-label="Open menu" className="nav-open"><span /><span /><span /></label><strong>PIP</strong></div>
           <main className="content">{children}</main>
         </div>
       </div>
+      <label htmlFor="nav-toggle" className="nav-scrim" aria-label="Close menu" />
     </>
   );
 }

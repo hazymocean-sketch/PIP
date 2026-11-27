@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { Flash, PageHead, SectionTabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { completeTask } from "@/server/actions";
 import { addDays, addMonths, dayOf, hourOf, isoDay, label, startUtc, timeOf, todayDubai, weekStart } from "@/lib/dubai";
 
 export const metadata = { title: "Agenda" };
@@ -33,7 +34,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
   const items: Item[] = [
     ...(mR.rows as any[]).map((m) => { const s = new Date(m.starts_at); const e = m.ends_at ? new Date(m.ends_at) : null;
       return { kind: "meeting" as const, id: m.id, title: m.title, day: dayOf(s), time: timeOf(s), end: e ? timeOf(e) : undefined, hour: hourOf(s), href: `/meetings/${m.id}/edit`, meta: [m.rel, m.location].filter(Boolean).join(" · ") || null, cancelled: m.status === "cancelled" }; }),
-    ...(tR.rows as any[]).map((t) => ({ kind: "task" as const, id: t.id, title: t.title, day: String(t.due_date).slice(0, 10), href: t.project_id ? `/projects/${t.project_id}` : t.opportunity_id ? `/opportunities/${t.opportunity_id}` : `/tasks/${t.id}/edit`, meta: t.rel })),
+    ...(tR.rows as any[]).map((t) => ({ kind: "task" as const, id: t.id, title: t.title, day: String(t.due_date).slice(0, 10), href: `/tasks/${t.id}/edit?back=${encodeURIComponent(`/agenda?view=${view}&d=${d}`)}`, meta: t.rel })),
     ...(fR.rows as any[]).map((o) => ({ kind: "follow" as const, id: o.id, title: o.next_action ? `${o.next_action} — ${o.title}` : `Follow up: ${o.title}`, day: String(o.follow_up_date).slice(0, 10), href: `/opportunities/${o.id}` })),
   ];
   // Meetings first (by time), then follow-ups, then tasks
@@ -46,9 +47,16 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
     : view === "week" ? `${label(from, { day: "numeric", month: "short" })} – ${label(addDays(from, 6), { day: "numeric", month: "short", year: "numeric" })}`
     : label(d, { month: "long", year: "numeric" });
   const newHref = (day: string, time?: string) => `/meetings/new?date=${day}${time ? `&time=${time}` : ""}&back=${encodeURIComponent(href({ d: day }))}`;
+  const newTask = (day: string) => `/tasks/new?date=${day}&back=${encodeURIComponent(href({ d: day }))}`;
+  const here = href({});
   const counts = { meeting: items.filter((i) => i.kind === "meeting" && !i.cancelled).length, task: items.filter((i) => i.kind === "task").length, follow: items.filter((i) => i.kind === "follow").length };
 
-  const Chip = ({ i, compact }: { i: Item; compact?: boolean }) => (
+  const Chip = ({ i, compact }: { i: Item; compact?: boolean }) => i.kind === "task" ? (
+    <div className="cal-task">
+      <form action={completeTask.bind(null, i.id, here)}><button type="submit" className="cal-tick" title="Mark done" aria-label={`Mark “${i.title}” done`} /></form>
+      <Link href={i.href} className={`cal-chip task${compact ? " compact" : ""}`} title={[i.title, i.meta].filter(Boolean).join(" — ")}><span className="tt">{i.title}</span>{!compact && i.meta ? <span className="mt">{i.meta}</span> : null}</Link>
+    </div>
+  ) : (
     <Link href={i.href} className={`cal-chip ${i.kind}${i.cancelled ? " cancelled" : ""}`} title={[i.title, i.meta].filter(Boolean).join(" — ")}>
       {i.time ? <span className="tm">{i.time}</span> : <span className="dot" />}<span className="tt">{i.title}</span>
       {!compact && i.meta ? <span className="mt">{i.meta}</span> : null}
@@ -56,7 +64,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
   );
 
   return (<>
-    <PageHead title="Agenda" sub="Meetings, tasks due and CRM follow-ups on one calendar. Times are Dubai time." actions={<Link className="btn primary" href={newHref(d)}><Icon name="plus" />New meeting</Link>} />
+    <PageHead title="Agenda" sub="Meetings, tasks due and CRM follow-ups on one calendar. Times are Dubai time." actions={<div className="row"><Link className="btn" href={newTask(d)}><Icon name="check" />New task</Link><Link className="btn primary" href={newHref(d)}><Icon name="plus" />New meeting</Link></div>} />
     <SectionTabs section="agenda" active="Calendar" />
     <Flash sp={sp} />
     <div className="cal-bar">
@@ -78,7 +86,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
         {range.map((day) => { const list = byDay(day); const out = day.slice(0, 7) !== d.slice(0, 7);
           return (
             <div key={day} className={`cal-cell${out ? " out" : ""}${day === today ? " today" : ""}`}>
-              <div className="cal-cell-h"><Link href={href({ view: "day", d: day })} className="num">{Number(day.slice(8))}</Link><Link href={newHref(day)} className="add" aria-label={`Add meeting on ${day}`}>+</Link></div>
+              <div className="cal-cell-h"><Link href={href({ view: "day", d: day })} className="num">{Number(day.slice(8))}</Link><span className="adds"><Link href={newHref(day)} className="add" title="Add meeting" aria-label={`Add meeting on ${day}`}>+M</Link><Link href={newTask(day)} className="add" title="Add task" aria-label={`Add task on ${day}`}>+T</Link></span></div>
               {list.slice(0, 3).map((i) => <Chip key={i.kind + i.id} i={i} compact />)}
               {list.length > 3 ? <Link className="more" href={href({ view: "day", d: day })}>+{list.length - 3} more</Link> : null}
             </div>); })}
@@ -92,7 +100,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
               <div className="cal-col-b">{(() => { const meet = list.filter((i) => i.kind === "meeting"); const rest = list.filter((i) => i.kind !== "meeting");
                 return <>{meet.map((i) => <Chip key={i.kind + i.id} i={i} />)}{rest.slice(0, 3).map((i) => <Chip key={i.kind + i.id} i={i} compact />)}
                   {rest.length > 3 ? <Link className="more" href={href({ view: "day", d: day })}>+{rest.length - 3} more tasks</Link> : null}</>; })()}
-                <Link href={newHref(day)} className="cal-add">+ Add</Link></div>
+                <div className="cal-adds"><Link href={newHref(day)} className="cal-add">+ Meeting</Link><Link href={newTask(day)} className="cal-add">+ Task</Link></div></div>
             </div>); })}
       </div>
     ) : (
@@ -110,9 +118,9 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<R
           })}
         </div>
         <div className="card cal-allday">
-          <div className="card-h"><h2>Due this day</h2></div>
+          <div className="card-h"><h2>Tasks &amp; follow-ups</h2><Link className="btn sm" href={newTask(d)}>+ Task</Link></div>
           <div className="card-b stack" style={{ gap: 8 }}>{byDay(d).filter((i) => !i.time).map((i) => <Chip key={i.kind + i.id} i={i} />)}
-            {!byDay(d).some((i) => !i.time) ? <span className="muted small">No tasks or follow-ups due.</span> : null}</div>
+            {!byDay(d).some((i) => !i.time) ? <span className="muted small">Nothing due. Add a task for this day.</span> : null}</div>
         </div>
       </div>
     )}
