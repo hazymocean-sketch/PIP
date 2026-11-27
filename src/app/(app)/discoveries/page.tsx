@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as C from "@/lib/constants";
 import { DISCOVERY_FIELDS } from "@/lib/fields";
-import { addDiscovery, deleteDiscoveriesAction, deleteSearchRunAction } from "@/server/actions";
+import { deleteDiscoveriesAction, deleteSearchRunAction } from "@/server/actions";
 import { filterQs, filterWhere, parseFilter } from "@/server/discovery-list";
 import { BulkBar, ConfirmButton, RunPicker } from "@/components/discovery-client";
 import { Icon } from "@/components/icons";
@@ -39,14 +39,9 @@ export default async function Discoveries({ searchParams }: { searchParams: Prom
   return (<>
     <PageHead title="Discover" sub="Find potential projects, review the evidence, then save, link, flag or reject. Nothing becomes a project without your review." />
     <Flash sp={sp} />
-    <div className="grid g2" style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 14 }}>
       <Card title="Run a discovery search" sub={provider ? `Automated via ${provider.label}. Results land in the review list below.` : "Manual mode — no search API connected yet. PIP prepares the query set and one-click search links; you open them and add what you find. Nothing is fabricated."}>
         <DiscoveryRunner sectors={refs.sectors ?? []} locations={C.LOCATIONS} providerLabel={provider?.label ?? null} />
-      </Card>
-      <Card title="Add a discovery manually" sub="Paste a lead from an article, contact or site visit">
-        <details><summary>Open form</summary>
-          <form action={addDiscovery} style={{ marginTop: 10 }}><FormFields fields={DISCOVERY_FIELDS} refs={refs} values={{ infoStatus: "reported", kind: "project" }} /><div className="form-foot"><Submit>Add discovery</Submit></div></form>
-        </details>
       </Card>
     </div>
     <Tabs active={{ review: "To review", needs_verification: "Needs verification", saved: "Saved", rejected: "Rejected", all: "All" }[status] ?? "To review"} items={[

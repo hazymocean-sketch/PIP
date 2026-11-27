@@ -24,7 +24,7 @@ await t("project with 2 ventures goes live", async () => {
 });
 await t("CRM project click opens its pipeline", async () => {
   await p.goto(base + "/opportunities?q=" + encodeURIComponent(name));
-  await Promise.all([p.waitForURL(/\/pipeline\?project=/), p.locator(".crm-row:not(.h) a.p").first().click()]);
+  await Promise.all([p.waitForURL(/\/pipeline\?project=/), p.locator(".crm-proj:not(.h) a.p").first().click()]);
   const n = await p.locator(".deal").count(); if (n < 1) throw new Error("no deals"); console.log("   deals on project:", n);
 });
 await t("move deal to stage 3", async () => {

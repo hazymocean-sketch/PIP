@@ -172,10 +172,11 @@ async function runStep(run: Run, wf: Workflow, step: WorkflowStep, cfg: Record<s
       return "wait";
     }
     case "run_discovery": {
-      const { runDiscovery } = await import("@/server/research");
+      const { runDiscovery, sectorIdForSlug } = await import("@/server/research");
       const loc = (cfg.location as string) || "UAE";
-      const r = await runDiscovery({ title: renderTemplate(cfg.title ?? `Scheduled discovery — ${loc}`, tctx), query: (cfg.query as string) ?? null, sectorId: null,
-        location: loc, dateFrom: null, dateTo: null, template: cfg.template === "custom" ? "custom" : "hotels" });
+      const template = typeof cfg.template === "string" && cfg.template ? cfg.template : "hotels-resorts";
+      const r = await runDiscovery({ title: renderTemplate(cfg.title ?? `Scheduled discovery — ${loc}`, tctx), query: (cfg.query as string) ?? null,
+        sectorId: template === "custom" ? null : await sectorIdForSlug(template), location: loc, dateFrom: null, dateTo: null, template });
       if (!r.provider) { await log(run, "No search provider connected — discovery session prepared for manual work.", "warning", i, step.type); return "next"; }
       if (r.errors.length && !r.created) throw new Error(`Search failed: ${r.errors[0]}`);
       await log(run, `Discovery (${loc}): ${r.created} new, ${r.skipped} duplicates skipped${r.errors.length ? `, ${r.errors.length} query errors` : ""}.`, "success", i, step.type);

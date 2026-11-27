@@ -42,7 +42,7 @@ await t("agenda: + Task on a day pre-fills the date", async () => {
   await p.fill("input[name=title]", title);
   await Promise.all([p.waitForURL(/\/agenda/), p.click("button[type=submit]:has-text('Create')")]);
 });
-await t("agenda: new task shows on that day", async () => { await p.locator(`.cal-chip:has-text('${title}')`).first().waitFor({ timeout: 5000 }); });
+await t("agenda: new task shows on that day", async () => { await p.goto(`${base}/agenda?view=day&d=${tomorrow}`); await p.locator(`.cal-chip:has-text('${title}')`).first().waitFor({ timeout: 5000 }); });
 await p.waitForTimeout(500); await p.screenshot({ path: "test-artifacts/agenda-task.png" });
 await t("agenda: clicking the task opens it and returns to the calendar", async () => {
   await Promise.all([p.waitForURL(/\/tasks\/.*\/edit/), p.locator(`.cal-chip:has-text('${title}')`).first().click()]);

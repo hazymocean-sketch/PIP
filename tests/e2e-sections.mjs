@@ -34,7 +34,7 @@ await t("Hint bubble appears on hover", async () => {
 });
 await t("Discover: live progress bar runs to completion", async () => {
   await p.goto(base + "/discoveries");
-  await p.fill("input[name=query]", `progress test ${stamp}`); await p.selectOption("select[name=template]", "custom");
+  await p.fill("input[name=query]", `progress test ${stamp}`);
   await p.click("button:has-text('Run discovery')");
   await p.locator(".search-progress").waitFor({ timeout: 5000 });
   await p.locator(".sp-state:has-text('Search complete')").waitFor({ timeout: 30000 });
@@ -69,7 +69,7 @@ await t("Opportunities: create with venture + stage, pipeline board", async () =
   await p.goto(base + "/opportunities/new"); await p.fill("#f-title", `E2E Opp ${stamp}`);
   await p.selectOption("#f-ventureId", { index: 1 }); await p.selectOption("#f-stageId", { index: 1 });
   await p.click("button:has-text('Create opportunity')"); await p.waitForURL(/\/opportunities\/[0-9a-f-]{36}/);
-  await p.goto(base + "/opportunities"); await p.locator("nav[aria-label=Venture] a").nth(1).click(); await p.waitForLoadState(); if (!(await p.locator('.crm-row').count())) throw new Error('CRM list missing');
+  await p.goto(base + "/opportunities"); await p.locator("nav[aria-label=Venture] a").nth(1).click(); await p.waitForLoadState(); if (!(await p.locator('.crm-proj').count())) throw new Error('CRM list missing');
 });
 await t("Agenda: create task, complete it; log activity", async () => {
   await p.goto(base + "/tasks/new"); await p.fill("#f-title", `E2E Task ${stamp}`); await p.click("button:has-text('Create task')"); await ok();

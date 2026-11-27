@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+export const maxDuration = 300; // daily tick may run several discovery searches back to back
 import { timingSafeEqual } from "node:crypto";
 import { tick } from "@/server/workflows/engine";
 

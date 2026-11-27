@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Hint } from "./client";
 
 type Opt = { value: string; label: string };
 type Phase = "idle" | "starting" | "running" | "done" | "error";
@@ -59,9 +60,8 @@ export function DiscoveryRunner({ sectors, locations, providerLabel }: { sectors
     <form onSubmit={onSubmit} className="stack" style={{ gap: 12 }}>
       <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}>
         <div className="fields">
-          <div className="field wide"><label htmlFor="dq">Research query (optional)</label><input id="dq" name="query" placeholder="e.g. new upcoming hotels Riyadh" /></div>
-          <div className="field"><label>Template</label><select name="template" defaultValue="hotels"><option value="hotels">Hotels &amp; resorts pilot</option><option value="custom">Only my query</option></select></div>
-          <div className="field"><label>Sector</label><select name="sectorId"><option value="">Any</option>{sectors.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+          <div className="field wide"><label htmlFor="dq">What to look for (optional)</label><input id="dq" name="query" placeholder="e.g. new upcoming hotels Riyadh" /></div>
+          <div className="field"><label>Sector <Hint text="Pick a sector to run its ready-made searches (up to 6). Leave it on Any to search only your own words — or general project news if you type nothing." /></label><select name="sectorId"><option value="">Any</option>{sectors.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
           <div className="field"><label>Location</label><input name="location" list="disc-locs" placeholder="UAE" /><datalist id="disc-locs">{locations.map((l) => <option key={l} value={l} />)}</datalist></div>
           <div className="field"><label>Published from</label><input type="date" name="dateFrom" /></div>
         </div>

@@ -5,7 +5,7 @@ import * as C from "@/lib/constants";
 import { Card, Demo, Empty, Flash, PageHead, Badge, fmtDate } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { QuerySelect } from "@/components/discovery-client";
-import { closeDealAction, reopenDealAction } from "@/server/actions";
+import { closeDealAction, openDealsAction, reopenDealAction } from "@/server/actions";
 import { LOST_REASONS } from "@/server/live";
 
 export const metadata = { title: "CRM" };
@@ -38,7 +38,8 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Reco
   const from = sql`from opportunities o left join projects p on p.id = o.project_id`;
 
   const [rowsR, kR, reasonR, targetsR, venturesR, sectorsR] = await Promise.all([
-    db.execute(sql`select o.*, v.name as venture, p.name as project, p.city, coalesce(ss.name, s.name) as sector, st.name as stage
+    db.execute(sql`select o.*, v.name as venture, v.sort_order as venture_order, p.name as project, p.city, p.is_live as project_live, coalesce(ss.name, s.name) as sector, st.name as stage,
+        (select coalesce(json_agg(json_build_object('id', pv2.venture_id, 'name', v2.name) order by v2.sort_order), '[]') from project_ventures pv2 join ventures v2 on v2.id = pv2.venture_id where pv2.project_id = o.project_id) as project_ventures
       ${from} left join ventures v on v.id = o.venture_id left join sectors s on s.id = p.sector_id left join sectors ss on ss.id = p.sub_sector_id
       left join pipeline_stages st on st.id = o.stage_id
       where ${base} and ${tabCond}
@@ -81,6 +82,16 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Reco
     ["Top lost reason", topReason?.reason ?? "—", topReason ? `${topReason.n} of ${k.lost_90} losses · 90 days` : "no losses in 90 days"],
   ];
 
+  // One row per project: its deals (one per venture) listed together
+  const short = (n: string) => n.replace(/\s*\(.*\)\s*$/, "");
+  const groupMap = new Map<string, { key: string; deals: any[]; allDeals: any[] }>();
+  for (const o of rows) { const key = o.project_id ?? `deal-${o.id}`; const g = groupMap.get(key) ?? { key, deals: [] as any[], allDeals: [] as any[] }; g.deals.push(o); groupMap.set(key, g); }
+  for (const g of groupMap.values()) g.deals.sort((a, b) => (a.venture_order ?? 99) - (b.venture_order ?? 99));
+  const projIds = [...groupMap.values()].map((g) => g.deals[0].project_id).filter(Boolean) as string[];
+  const allDealsR: { rows: unknown[] } = projIds.length ? await db.execute(sql`select id, project_id, venture_id from opportunities where project_id in (${sql.join(projIds.map((i) => sql`${i}::uuid`), sql`, `)})`) : { rows: [] };
+  for (const g of groupMap.values()) g.allDeals = (allDealsR.rows as any[]).filter((d) => d.project_id === g.deals[0].project_id);
+  const groups = [...groupMap.values()];
+
   const status = (o: any) => o.commercial_status === "won" ? "won" : o.commercial_status === "lost" ? "lost" : o.commercial_status === "on_hold" ? "hold" : "live";
 
   return (<>
@@ -110,37 +121,56 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Reco
     </div>
 
     <Card tight className="pl-list">
-      {rows.length ? <>
-        <div className="crm-row h"><span>Project</span><span>Venture</span><span>Sector</span><span>Stage</span><span>Value</span><span>Next action</span><span>Status</span></div>
-        {rows.map((o) => {
-          const s = status(o);
-          const overdue = o.follow_up_date && o.follow_up_date < today && s === "live";
+      {groups.length ? <>
+        <div className="crm-proj h"><span>Project</span><div className="crm-deal"><span>Venture</span><span>Stage</span><span>Value</span><span>Next action</span><span>Status</span></div></div>
+        {groups.map((g) => {
+          const o0 = g.deals[0];
+          const dealVentures = new Set(g.allDeals.map((d: any) => d.venture_id));
+          const missing = (o0.project_ventures as { id: string; name: string }[]).filter((v) => !dealVentures.has(v.id));
           return (
-            <div key={o.id} className="crm-row">
-              <div><Link className="p" href={o.project_id ? `/pipeline?project=${o.project_id}` : `/opportunities/${o.id}`} title="Open the pipeline">{o.project ?? o.title}</Link> <Demo on={o.is_demo} />
-                <div className="sub">{o.city ? `${o.city} · ` : ""}<Link className="link" href={`/opportunities/${o.id}`}>Deal details</Link></div></div>
-              <div>{o.venture ? <Badge tone="outline">{o.venture}</Badge> : <span className="faint small">—</span>}</div>
-              <span className="soft">{o.sector ?? <span className="faint">—</span>}</span>
-              <span className="soft">{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</span>
-              <span className="num">{o.estimated_value ? money(Number(o.estimated_value)) : <span className="faint">—</span>}</span>
-              <div>{o.next_action ? <div>{o.next_action}</div> : <span className="faint small">None set</span>}{o.follow_up_date ? <div className="sub" style={overdue ? { color: "var(--bad)" } : undefined}>{overdue ? "Overdue · " : ""}{fmtDate(o.follow_up_date)}</div> : null}</div>
-              <div>
-                <span className={`st ${s}`}><i />{s === "hold" ? "On hold" : s}</span>
-                {s === "lost" && o.lost_reason ? <div className="crm-why">{o.lost_reason}</div> : null}
-                {s === "won" && o.closed_at ? <div className="crm-why">{fmtDate(o.closed_at)}</div> : null}
-                <div className="crm-act">
-                  {s === "live" || s === "hold" ? <>
-                    <form action={closeDealAction.bind(null, o.id, "won")}><input type="hidden" name="_back" value={listUrl} /><button className="btn xs" type="submit">Won</button></form>
-                    <details><summary className="btn xs" style={{ listStyle: "none" }}>Lost</summary>
-                      <div><form action={closeDealAction.bind(null, o.id, "lost")} className="stack" style={{ gap: 8 }}>
-                        <input type="hidden" name="_back" value={listUrl} />
-                        <select name="reason" required defaultValue=""><option value="" disabled>Why was it lost?</option>{LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}</select>
-                        <input name="reasonNote" placeholder="Detail (optional), e.g. 12% above winner" />
-                        <button className="btn danger sm" type="submit">Mark as lost</button>
-                      </form></div>
-                    </details>
-                  </> : <form action={reopenDealAction.bind(null, o.id)}><input type="hidden" name="_back" value={listUrl} /><button className="btn xs ghost" type="submit">Re-open</button></form>}
-                </div>
+            <div key={g.key} className="crm-proj">
+              <div className="crm-p">
+                <Link className="p" href={o0.project_id ? `/pipeline?project=${o0.project_id}` : `/opportunities/${o0.id}`} title="Open the pipeline">{o0.project ?? o0.title}</Link> <Demo on={o0.is_demo} />
+                <div className="sub">{[o0.city, o0.sector].filter(Boolean).join(" · ") || "—"}</div>
+                <div className="crm-vens">{(o0.project_ventures as { id: string; name: string }[]).map((v) => <Badge key={v.id} tone="outline">{short(v.name)}</Badge>)}</div>
+              </div>
+              <div className="crm-deals">
+                {g.deals.map((o: any) => {
+                  const s = status(o);
+                  const overdue = o.follow_up_date && o.follow_up_date < today && s === "live";
+                  return (
+                    <div key={o.id} className="crm-deal">
+                      <div>{o.venture ? <Link href={`/opportunities/${o.id}`} className="ven-link" title="Deal details">{short(o.venture)}</Link> : <Link href={`/opportunities/${o.id}`} className="ven-link faint">No venture</Link>}</div>
+                      <span className="soft">{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</span>
+                      <span className="num">{o.estimated_value ? money(Number(o.estimated_value)) : <span className="faint">—</span>}</span>
+                      <div>{o.next_action ? <div>{o.next_action}</div> : <span className="faint small">None set</span>}{o.follow_up_date ? <div className="sub" style={overdue ? { color: "var(--bad)" } : undefined}>{overdue ? "Overdue · " : ""}{fmtDate(o.follow_up_date)}</div> : null}</div>
+                      <div>
+                        <span className={`st ${s}`}><i />{s === "hold" ? "On hold" : s}</span>
+                        {s === "lost" && o.lost_reason ? <div className="crm-why">{o.lost_reason}</div> : null}
+                        {s === "won" && o.closed_at ? <div className="crm-why">{fmtDate(o.closed_at)}</div> : null}
+                        <div className="crm-act">
+                          {s === "live" || s === "hold" ? <>
+                            <form action={closeDealAction.bind(null, o.id, "won")}><input type="hidden" name="_back" value={listUrl} /><button className="btn xs" type="submit">Won</button></form>
+                            <details><summary className="btn xs" style={{ listStyle: "none" }}>Lost</summary>
+                              <div><form action={closeDealAction.bind(null, o.id, "lost")} className="stack" style={{ gap: 8 }}>
+                                <input type="hidden" name="_back" value={listUrl} />
+                                <select name="reason" required defaultValue=""><option value="" disabled>Why was it lost?</option>{LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+                                <input name="reasonNote" placeholder="Detail (optional), e.g. 12% above winner" />
+                                <button className="btn danger sm" type="submit">Mark as lost</button>
+                              </form></div>
+                            </details>
+                          </> : <form action={reopenDealAction.bind(null, o.id)}><input type="hidden" name="_back" value={listUrl} /><button className="btn xs ghost" type="submit">Re-open</button></form>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {tab !== "won" && tab !== "lost" && o0.project_id && missing.length ? (
+                  <div className="crm-deal missing">
+                    <div>{missing.map((v) => <span key={v.id} className="ven-link faint">{short(v.name)}</span>)}</div>
+                    <span className="faint small" style={{ gridColumn: "span 3" }}>Linked to this project, no deal yet</span>
+                    <form action={openDealsAction.bind(null, o0.project_id)}><input type="hidden" name="_back" value={listUrl} /><button className="btn xs" type="submit">Open deal{missing.length > 1 ? "s" : ""}</button></form>
+                  </div>) : null}
               </div>
             </div>
           );

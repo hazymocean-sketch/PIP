@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const location = str(b.location, 100);
   const r = await startDiscoverySession({
     title: str(b.title) || `Discovery — ${query || location || "hotels & resorts"}`,
-    query, location, sectorId: uuid(b.sectorId), dateFrom: date(b.dateFrom), dateTo: null, template: b.template === "custom" ? "custom" : "hotels",
+    query, location, sectorId: uuid(b.sectorId), dateFrom: date(b.dateFrom), dateTo: null, template: null,
   });
   return NextResponse.json({ sessionId: r.session.id, queries: r.queries, provider: r.provider });
 }

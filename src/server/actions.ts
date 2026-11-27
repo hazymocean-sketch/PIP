@@ -72,8 +72,22 @@ export async function setProjectVentures(projectId: string, fd: FormData) {
     const relevance = form.str(fd, `relevance_${v}`, { max: 2000 });
     await db.insert(S.projectVentures).values({ projectId, ventureId: v, relevance });
   }
+  const [proj] = await db.select().from(S.projects).where(eq(S.projects.id, projectId));
   await db.update(S.projects).set({ updatedAt: new Date() }).where(eq(S.projects.id, projectId));
-  redirect(withFlash(`/projects/${projectId}`, "ok", "Venture relevance updated"));
+  let msg = "Venture relevance updated";
+  if (proj?.isLive) { const { goLive } = await import("./live"); const r = await goLive(projectId); if (r.created) msg += ` — opened ${r.created} new deal${r.created === 1 ? "" : "s"} in the CRM`; }
+  revalidatePath("/opportunities"); revalidatePath("/pipeline");
+  redirect(withFlash(`/projects/${projectId}`, "ok", msg));
+}
+
+export async function mergeProjectAction(keepId: string, dropId: string) {
+  await requireAdmin();
+  if (!isUuid(keepId) || !isUuid(dropId)) redirect(withFlash("/projects", "error", "Unknown project"));
+  const { mergeProjects } = await import("./merge");
+  try { await mergeProjects(keepId, dropId); }
+  catch (e) { redirect(withFlash(`/projects/${keepId}`, "error", (e as Error).message)); }
+  revalidatePath("/projects"); revalidatePath("/opportunities"); revalidatePath("/pipeline");
+  redirect(withFlash(`/projects/${keepId}`, "ok", "Merged — one project now, with everything from the duplicate"));
 }
 
 export async function addProjectCompany(projectId: string, fd: FormData) {
@@ -181,7 +195,7 @@ export async function runDiscoveryAction(fd: FormData) {
   const res = await guarded(async () => runDiscovery({
     title: form.str(fd, "title") || `Discovery — ${form.str(fd, "query") || "hotels & resorts"}`,
     query: form.str(fd, "query", { max: 500 }), sectorId: form.uuidOrNull(fd, "sectorId"), location: form.str(fd, "location", { max: 100 }),
-    dateFrom: form.dateStr(fd, "dateFrom"), dateTo: form.dateStr(fd, "dateTo"), template: form.str(fd, "template") === "hotels" ? "hotels" : "custom",
+    dateFrom: form.dateStr(fd, "dateFrom"), dateTo: form.dateStr(fd, "dateTo"), template: null,
   }), "/discoveries");
   const note = res.provider ? `${res.created} new discoveries, ${res.skipped} duplicates skipped${res.errors.length ? `, ${res.errors.length} errors` : ""}` : "Manual mode: open the search links, then add what you find";
   redirect(withFlash(`/research/${res.session.id}`, "ok", note));
@@ -206,7 +220,9 @@ export async function setDiscoveryStatus(id: string, status: "new" | "needs_veri
 export async function promoteDiscovery(id: string, fd: FormData) {
   await requireAdmin();
   const p = await guarded(async () => saveDiscoveryAsProject(id, { name: form.reqStr(fd, "name", 300), ventureIds: form.uuids(fd, "ventureId") }), `/discoveries/${id}`);
-  redirect(withFlash(`/projects/${p.id}`, "ok", "Saved as project — source and discovery linked"));
+  redirect(withFlash(`/projects/${p.id}`, "ok", p.mergedInto
+    ? `Already in your pipeline as “${p.name}” — linked this find to it${p.addedVentures ? ` and added ${p.addedVentures} venture${p.addedVentures === 1 ? "" : "s"}` : ""}. No duplicate created.`
+    : "Saved as project — source and discovery linked"));
 }
 
 export async function linkDiscovery(id: string, fd: FormData) {
@@ -287,6 +303,16 @@ export async function moveDealAction(id: string, target: string, fd: FormData) {
   catch (e) { redirect(withFlash(back, "error", (e as Error).message)); }
   revalidatePath("/pipeline"); revalidatePath("/opportunities"); revalidatePath("/projects");
   redirect(withFlash(back, "ok", "Deal moved"));
+}
+
+/** Open the missing deals for a project's linked ventures (same as Go live for those ventures). */
+export async function openDealsAction(projectId: string, fd: FormData) {
+  await requireAdmin();
+  const back = crmBack(fd);
+  const { goLive } = await import("./live");
+  const r = await goLive(projectId);
+  revalidatePath("/opportunities"); revalidatePath("/pipeline"); revalidatePath("/projects");
+  redirect(withFlash(back, "ok", r.created ? `Opened ${r.created} deal${r.created === 1 ? "" : "s"}` : "Every venture already has a deal"));
 }
 
 export async function reopenDealAction(id: string, fd: FormData) {

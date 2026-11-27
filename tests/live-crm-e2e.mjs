@@ -35,13 +35,13 @@ await p.screenshot({ path: "test-artifacts/live-projects.png" });
 await t("Live filter shows it", async () => { await p.goto(base + "/projects?live=1&q=" + encodeURIComponent(name)); if ((await p.locator(".pl-row").count()) !== 1) throw new Error("not in Live filter"); });
 await t("CRM shows its live deal", async () => {
   await p.goto(base + "/opportunities?q=" + encodeURIComponent(name));
-  if ((await p.locator(".crm-row:not(.h)").count()) < 1) throw new Error("no deal in CRM");
+  if ((await p.locator(".crm-proj:not(.h)").count()) < 1) throw new Error("no deal in CRM");
 });
 await t("Mark lost needs a reason, then shows it", async () => {
-  await p.locator(".crm-row:not(.h) summary:has-text('Lost')").first().click();
-  await p.locator(".crm-row:not(.h) select[name=reason]").first().selectOption("Price");
-  await p.locator(".crm-row:not(.h) input[name=reasonNote]").first().fill("12% above winner");
-  await Promise.all([p.waitForURL(/ok=/), p.locator(".crm-row:not(.h) button:has-text('Mark as lost')").first().click()]);
+  await p.locator(".crm-proj:not(.h) summary:has-text('Lost')").first().click();
+  await p.locator(".crm-proj:not(.h) select[name=reason]").first().selectOption("Price");
+  await p.locator(".crm-proj:not(.h) input[name=reasonNote]").first().fill("12% above winner");
+  await Promise.all([p.waitForURL(/ok=/), p.locator(".crm-proj:not(.h) button:has-text('Mark as lost')").first().click()]);
   await p.goto(base + "/opportunities?status=lost&q=" + encodeURIComponent(name));
   const why = await p.locator(".crm-why").first().textContent();
   if (!/Price — 12% above winner/.test(why)) throw new Error("reason missing: " + why);
@@ -59,7 +59,7 @@ await t("Monthly target set in Settings shows on CRM", async () => {
 });
 await t("Won", async () => {
   await p.goto(base + "/opportunities?q=" + encodeURIComponent(name));
-  await Promise.all([p.waitForURL(/ok=/), p.locator(".crm-row:not(.h) button:has-text('Won')").first().click()]);
+  await Promise.all([p.waitForURL(/ok=/), p.locator(".crm-proj:not(.h) button:has-text('Won')").first().click()]);
 });
 await p.goto(base + "/opportunities?status=all"); await p.waitForTimeout(1500); await p.addStyleTag({ content: ".onair.live i,.st.live i{animation:none!important;opacity:1!important}" });
 await p.screenshot({ path: "test-artifacts/live-crm.png" });

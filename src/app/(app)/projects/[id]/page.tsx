@@ -1,3 +1,4 @@
+import { ConfirmButton } from "@/components/discovery-client";
 import { LiveButton } from "@/components/live-button";
 import { isUuid } from "@/lib/normalize";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { db } from "@/db";
 import * as S from "@/db/schema";
 import * as C from "@/lib/constants";
 import { computeScore } from "@/lib/scoring";
-import { addProjectCompany, addProjectContact, deleteEntity, removeProjectCompany, removeProjectContact, saveScore, setProjectVentures, createResearchSession } from "@/server/actions";
+import { addProjectCompany, addProjectContact, deleteEntity, removeProjectCompany, removeProjectContact, saveScore, setProjectVentures, createResearchSession, mergeProjectAction } from "@/server/actions";
 import { findDuplicateProjects } from "@/server/research";
 import { refOptions } from "@/server/entities";
 import { ActivitiesPanel, AgentButton, SourcesPanel, TasksPanel } from "@/components/panels";
@@ -54,7 +55,13 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
           <Link className="btn primary" href={`/projects/${id}/edit`}><Icon name="edit" />Edit</Link>
         </>} />
       <Flash sp={sp} />
-      {dups.length ? <div className="notice warn" style={{ marginBottom: 14 }}>Possible duplicates: {dups.map((d, i) => <span key={d.id}>{i ? ", " : ""}<Link className="link" href={`/projects/${d.id}`}>{d.name}</Link> ({Math.round(d.score * 100)}%)</span>)}</div> : null}
+      {dups.length ? <div className="notice warn dup-box" style={{ marginBottom: 14 }}>
+        <div><b>Possible duplicates.</b> Same project saved twice (e.g. once per venture)? Merge it into this one — ventures, companies, people, deals and sources all move here.</div>
+        {dups.map((d) => <div key={d.id} className="dup-row">
+          <Link className="link" href={`/projects/${d.id}`}>{d.name}</Link><span className="muted small">{Math.round(Number(d.score) * 100)}% similar{d.city ? ` · ${d.city}` : ""}</span>
+          <form action={mergeProjectAction.bind(null, id, d.id)}><ConfirmButton className="btn sm" message={`Merge “${d.name}” into “${p.name}”? Everything moves here and the duplicate is deleted.`}>Merge into this project</ConfirmButton></form>
+        </div>)}
+      </div> : null}
 
       <div className="split">
         <div className="stack">
@@ -117,7 +124,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
 
         <div className="stack">
           <Card title="Relevant ventures" sub="Tick every business this project could matter to, and note why (scope, package). One project can serve several ventures.">
-            <form action={setProjectVentures.bind(null, id)} className="stack" style={{ gap: 10 }}>
+            <form key={pv.map((x) => `${x.ventureId}:${x.relevance ?? ""}`).sort().join("|")} action={setProjectVentures.bind(null, id)} className="stack" style={{ gap: 10 }}>
               {ventures.map((v) => { const link = pv.find((x) => x.ventureId === v.id); return (
                 <div key={v.id} className="stack" style={{ gap: 4 }}>
                   <label className="check"><input type="checkbox" name="ventureId" value={v.id} defaultChecked={!!link} /> {v.name}{!v.servicesConfirmed ? <span className="faint small"> (services tbc)</span> : null}</label>

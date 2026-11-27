@@ -46,6 +46,8 @@ const SECTOR_SEED: { slug: string; name: string; research: boolean; children?: [
   { slug: "fnb-retail-leisure", name: "F&B, retail & leisure", research: false, children: [["fnb", "F&B"], ["retail", "Retail"], ["leisure", "Leisure / entertainment"]] },
   { slug: "education-institutional", name: "Education & institutional", research: false },
   { slug: "office-commercial", name: "Office & commercial", research: false },
+  { slug: "healthcare", name: "Healthcare", research: false, children: [["hospital", "Hospital"], ["clinic", "Clinic / medical centre"]] },
+  { slug: "government-cultural", name: "Government, cultural & religious", research: false, children: [["mosque", "Mosque"], ["museum", "Museum / heritage"], ["government", "Government building"]] },
   { slug: "other", name: "Other", research: false },
 ];
 
@@ -70,6 +72,20 @@ const SCHEDULED_TEMPLATES = [
     steps: [{ type: "run_discovery" as const, config: { location: "Ras Al Khaimah", template: "hotels" } },
             { type: "run_discovery" as const, config: { location: "Abu Dhabi", template: "hotels" } },
             { type: "run_agent" as const, config: { agentKey: "business_development", instruction: "Route new discoveries" } }] },
+  // One sector per weekday so Discover fills steadily (hotels stay daily). Each run = up to 6 searches across the UAE.
+  ...([
+    ["residential", "Residential (villas, apartments, branded residences)", 2],
+    ["office-commercial", "Office & commercial", 3],
+    ["fnb-retail-leisure", "F&B, retail & leisure", 4],
+    ["education-institutional", "Education & institutional", 5],
+    ["healthcare", "Healthcare", 6],
+    ["government-cultural", "Government, cultural & religious (mosques, museums)", 0],
+  ] as const).map(([slug, label, weekday]) => ({
+    name: `Weekly discovery — ${label}`, description: `Every ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][weekday]} morning: runs the ${label.toLowerCase()} searches across the UAE and saves new finds for review (duplicates skipped).`,
+    triggerType: "schedule", schedule: { every: "week" as const, weekday, at: "06:30" }, mode: "automate", enabled: true,
+    steps: [{ type: "run_discovery" as const, config: { location: "UAE", template: slug } },
+            { type: "run_agent" as const, config: { agentKey: "business_development", instruction: "Route new discoveries" } }],
+  })),
 ];
 
 const LEGACY_RESEARCH_INSTRUCTIONS = "For a project: assess gaps, open a structured research session, run targeted searches, propose a Lusha decision-maker search for the stakeholder companies (needs approval — uses credits), and create research tasks for each unresolved question.";

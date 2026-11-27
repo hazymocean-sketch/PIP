@@ -12,7 +12,7 @@ const STEP_HELP = `Step types (JSON array of {"type", "config"}):
   notify / escalate  {"title":"…","body":"…"}         (escalate = critical + urgent task)
   request_approval   {"title":"Approve …","risk":"high"}  → pauses until you decide
   run_agent          {"agentKey":"research","instruction":"…"}
-  run_discovery      {"location":"Dubai","template":"hotels"}   (live web search when connected)
+  run_discovery      {"location":"Dubai","template":"residential"}   (template = sector: hotels-resorts, residential, office-commercial, fnb-retail-leisure, education-institutional, healthcare, government-cultural)
   update_field       {"field":"status","value":"under_research"}  (assist mode → approval)
 Templates: {{entity.name}}, {{entity.title}}, {{today}}
 Condition ops: eq, neq, in, gte, lte, contains, exists, not_exists`;

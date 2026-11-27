@@ -51,12 +51,68 @@ export const PILOT_SOURCES = [
   { name: "Hospitality Net", domain: "hospitalitynet.org" },
 ];
 
-export function buildQueries(base: string | null, location: string | null, template: "hotels" | "custom") {
+/**
+ * Ready-made searches per sector (keyed by the top-level sector slug). Discover uses the chosen sector's list;
+ * the weekly scheduled searches use the same lists. At most 6 run per search (search credits).
+ */
+export const SECTOR_QUERIES: Record<string, string[]> = {
+  "hotels-resorts": HOTEL_PILOT_QUERIES,
+  residential: [
+    "new luxury villa community launched {loc}", "branded residences project announced {loc}", "residential tower main contractor awarded {loc}",
+    "apartment project construction begins {loc} {year}", "villa project handover {loc} {year}", "residential development interior design consultant {loc}",
+  ],
+  "office-commercial": [
+    "new office tower announced {loc}", "Grade A office building under construction {loc}", "headquarters fit-out tender {loc}",
+    "commercial tower main contractor awarded {loc}", "office fit-out contract awarded {loc} {year}", "business park development {loc} {year}",
+  ],
+  "fnb-retail-leisure": [
+    "new mall announced {loc}", "retail destination under construction {loc}", "restaurant fit-out contract {loc}",
+    "new restaurant opening {loc} {year}", "entertainment destination development {loc}", "retail fit-out tender {loc}",
+  ],
+  "education-institutional": [
+    "new school campus construction {loc}", "university building contract awarded {loc}", "school project tender {loc} {year}",
+    "library or cultural centre project {loc}", "institutional building interior fit-out {loc}", "education campus expansion {loc}",
+  ],
+  healthcare: [
+    "new hospital construction {loc}", "hospital main contractor awarded {loc}", "clinic fit-out tender {loc}",
+    "healthcare facility expansion {loc} {year}", "medical centre project announced {loc}", "hospital FF&E tender {loc}",
+  ],
+  "government-cultural": [
+    "new mosque construction {loc}", "museum project contract awarded {loc}", "government building project {loc} {year}",
+    "cultural centre construction {loc}", "mosque project tender {loc}", "heritage restoration project {loc}",
+  ],
+};
+export const GENERAL_QUERIES = [
+  "new project announced {loc} {year}", "main contractor awarded {loc}", "construction contract awarded {loc} {year}",
+  "fit-out tender {loc}", "FF&E tender {loc}", "interior design consultant appointed {loc}",
+];
+
+/** Which list a search uses: the sector's (by slug), or "custom" = only the typed words, or the general list. Old "hotels" still works. */
+export function buildQueries(base: string | null, location: string | null, template: string | null) {
   const loc = location || "UAE";
   const year = String(new Date().getFullYear());
-  if (template === "custom" || !template) return [base || `new development ${loc}`];
-  const qs = HOTEL_PILOT_QUERIES.map((q) => q.replace("{loc}", loc).replace("{year}", year));
+  const fill = (qs: string[]) => qs.map((q) => q.replace("{loc}", loc).replace("{year}", year));
+  const key = template === "hotels" ? "hotels-resorts" : template;
+  if (key === "custom") return [base || `new development ${loc}`];
+  const list = key && SECTOR_QUERIES[key] ? SECTOR_QUERIES[key] : null;
+  if (!list) return base ? [/\b(uae|dubai|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|riyadh|jeddah|doha|qatar|saudi|oman|bahrain|kuwait)\b/i.test(base) ? base : `${base} ${loc}`] : fill(GENERAL_QUERIES);
+  const qs = fill(list);
   return base ? [base, ...qs] : qs;
+}
+
+/** Top-level sector slug for a sector id (a sub-sector maps to its parent). */
+export async function sectorSlugFor(sectorId: string | null) {
+  if (!sectorId) return null;
+  const [s] = await db.select().from(sectors).where(eq(sectors.id, sectorId));
+  if (!s) return null;
+  if (!s.parentId) return s.slug;
+  const [p] = await db.select().from(sectors).where(eq(sectors.id, s.parentId));
+  return p?.slug ?? null;
+}
+export async function sectorIdForSlug(slug: string | null) {
+  if (!slug) return null;
+  const [s] = await db.select({ id: sectors.id }).from(sectors).where(eq(sectors.slug, slug === "hotels" ? "hotels-resorts" : slug));
+  return s?.id ?? null;
 }
 
 export function manualSearchLinks(query: string) {
@@ -68,13 +124,15 @@ export function manualSearchLinks(query: string) {
   ];
 }
 
-type DiscoveryParams = { title: string; query: string | null; sectorId: string | null; location: string | null; dateFrom: string | null; dateTo: string | null; template: "hotels" | "custom" };
+/** template: a sector slug, "custom" (only the typed words), or null = pick from the sector (or the general list). */
+type DiscoveryParams = { title: string; query: string | null; sectorId: string | null; location: string | null; dateFrom: string | null; dateTo: string | null; template?: string | null };
 export const MAX_QUERIES = 6;
 
 /** Step 1: create the session and decide which queries will run. */
 export async function startDiscoverySession(params: DiscoveryParams) {
   const provider = getSearchProvider();
-  const queries = buildQueries(params.query, params.location, params.template).slice(0, provider ? MAX_QUERIES : 20);
+  const template = params.template ?? (await sectorSlugFor(params.sectorId));
+  const queries = buildQueries(params.query, params.location, template).slice(0, provider ? MAX_QUERIES : 20);
   const [session] = await db.insert(researchSessions).values({
     kind: "discovery", title: params.title, query: queries.join("\n"), sectorId: params.sectorId, location: params.location,
     dateFrom: params.dateFrom, dateTo: params.dateTo, provider: provider?.id ?? "manual", status: provider ? "running" : "open",
@@ -136,9 +194,30 @@ export async function runDiscovery(params: DiscoveryParams) {
   return { session, provider: provider?.id ?? null, ...totals };
 }
 
-export async function saveDiscoveryAsProject(discoveryId: string, values: { name: string; ventureIds: string[]; status?: string }) {
+/** The project this name most likely already is (same name, or very similar). Used to avoid saving duplicates. */
+export async function existingProjectFor(name: string) {
+  const n = normalizeName(name);
+  const [hit] = (await findDuplicateProjects(name)).filter((r) => normalizeName(r.name) === n || Number(r.score) >= 0.7);
+  return hit ?? null;
+}
+
+/**
+ * Save a discovery into the pipeline. If the project is already there (e.g. saved before for another venture),
+ * the discovery is linked to it and the new venture(s) are added — one project, several ventures.
+ */
+export async function saveDiscoveryAsProject(discoveryId: string, values: { name: string; ventureIds: string[]; status?: string }): Promise<typeof projects.$inferSelect & { mergedInto?: boolean; addedVentures?: number }> {
   const [d] = await db.select().from(discoveries).where(eq(discoveries.id, discoveryId));
   if (!d) throw new Error("Discovery not found");
+  const existing = await existingProjectFor(values.name);
+  if (existing) {
+    await linkDiscoveryToProject(d.id, existing.id);
+    const before = (await db.select({ v: projectVentures.ventureId }).from(projectVentures).where(eq(projectVentures.projectId, existing.id))).map((r) => r.v);
+    let added = 0;
+    for (const v of values.ventureIds) if (!before.includes(v)) { await db.insert(projectVentures).values({ projectId: existing.id, ventureId: v }).onConflictDoNothing(); added++; }
+    const [p] = await db.select().from(projects).where(eq(projects.id, existing.id));
+    if (added && p.isLive) { const { goLive } = await import("./live"); await goLive(p.id); } // open deals for the new venture(s)
+    return { ...p, mergedInto: true, addedVentures: added };
+  }
   let subSectorId: string | null = null;
   let sectorId = d.sectorId;
   if (sectorId) {

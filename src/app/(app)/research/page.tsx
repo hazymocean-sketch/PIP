@@ -29,7 +29,7 @@ export default async function Research({ searchParams }: { searchParams: Promise
             <div className="field"><label>Company / developer</label><select name="companyId"><option value="">—</option>{companies.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></div>
             <div className="field wide"><label>Question / announcement to investigate</label><textarea name="query" placeholder="e.g. Has the operator for X been confirmed? Paste the announcement text or URL." /></div>
           </div>
-          <div className="row"><Submit>Open research session</Submit><Link className="btn ghost" href="/discoveries">Discovery search →</Link></div>
+          <div className="row"><Submit>Open research session</Submit></div>
         </form>
       </Card>
       <Card title="Research engine status">
