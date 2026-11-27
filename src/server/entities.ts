@@ -79,7 +79,12 @@ export async function createRecord(key: EntityKey, values: Record<string, any>, 
     const dup = await db.select({ id: S.newsItems.id }).from(S.newsItems).where(eq(S.newsItems.normalizedUrl, d.normalizedUrl as string));
     if (dup.length) throw new form.ValidationError("This news item already exists (same URL).");
   }
-  const [row] = (await db.insert(e.table).values({ ...data, ...d, ...extra }).returning()) as any[];
+  let [row] = (await db.insert(e.table).values({ ...data, ...d, ...extra }).returning()) as any[];
+  if (key === "opportunities") { // every deal belongs to a project (keeps CRM and Projects in sync)
+    const { ensureDealProject } = await import("./live");
+    const pid = await ensureDealProject(row.id);
+    if (pid && pid !== row.projectId) row = { ...row, projectId: pid };
+  }
   if (e.event) await emitEvent(`${e.event}.created`, e.event, row.id, {});
   return row;
 }
@@ -107,6 +112,7 @@ export async function updateRecord(key: EntityKey, id: string, values: Record<st
       }
     }
   }
+  if (key === "opportunities" && !(row as any).projectId) { const { ensureDealProject } = await import("./live"); await ensureDealProject(id); }
   return row;
 }
 

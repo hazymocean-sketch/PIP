@@ -95,8 +95,8 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Reco
   const status = (o: any) => o.commercial_status === "won" ? "won" : o.commercial_status === "lost" ? "lost" : o.commercial_status === "on_hold" ? "hold" : "live";
 
   return (<>
-    <PageHead title="CRM" sub="Every deal in one place. Deals open automatically when you press Go live on a project. Filter by venture or sector — the numbers follow your filters."
-      actions={<Link className="btn primary" href="/opportunities/new"><Icon name="plus" />New deal</Link>} />
+    <PageHead title="CRM" sub="Your live projects and their deals. A project enters the CRM only when you press Go live on it in Projects. Filter by venture or sector — the numbers follow your filters."
+      actions={<Link className="btn" href="/projects?live=0">Projects not live yet</Link>} />
     <Flash sp={sp} />
 
     <div className="crm-kpis">{kpis.map(([l, v, s]) => <div key={l} className="card crm-kpi"><div className="l">{l}</div><div className="v">{v}</div><div className="s">{s}</div></div>)}</div>

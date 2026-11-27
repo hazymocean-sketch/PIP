@@ -66,3 +66,24 @@ describe("One project, several ventures", () => {
     await expect(mergeProjects(keep.id, keep.id)).rejects.toThrow();
   });
 });
+
+describe("CRM ↔ Projects sync", () => {
+  it("a deal saved without a project gets one (live), named without the venture suffix; reuses an existing project", async () => {
+    const { createRecord } = await import("@/server/entities");
+    const [v] = await db.select().from(S.ventures).orderBy(S.ventures.sortOrder).limit(1);
+    const o = await createRecord("opportunities", { title: `Sync Central Towers — ${v.name}`, ventureId: v.id });
+    expect(o.projectId).toBeTruthy();
+    const [p] = await db.select().from(S.projects).where(eq(S.projects.id, o.projectId));
+    expect(p.name).toBe("Sync Central Towers"); expect(p.isLive).toBe(true);
+    expect((await db.select().from(S.projectVentures).where(eq(S.projectVentures.projectId, p.id))).length).toBe(1);
+    const o2 = await createRecord("opportunities", { title: "Sync Central Towers" });
+    expect(o2.projectId).toBe(p.id); // same project, no duplicate
+  });
+  it("repairs old deals that have no project", async () => {
+    const { syncOrphanDeals } = await import("@/server/live");
+    const [o] = await db.insert(S.opportunities).values({ title: "Orphan Deal Plaza" }).returning();
+    expect(await syncOrphanDeals()).toBeGreaterThanOrEqual(1);
+    const [after] = await db.select().from(S.opportunities).where(eq(S.opportunities.id, o.id));
+    expect(after.projectId).toBeTruthy();
+  });
+});

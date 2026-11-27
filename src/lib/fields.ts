@@ -59,7 +59,7 @@ export const CONTACT_FIELDS: FieldDef[] = [
 
 export const OPPORTUNITY_FIELDS: FieldDef[] = [
   { name: "title", label: "Opportunity title", type: "text", required: true, wide: true },
-  { name: "projectId", label: "Associated project", type: "ref", ref: "projects" },
+  { name: "projectId", label: "Project", type: "ref", ref: "projects", help: "Every deal belongs to a project. Leave empty and PIP uses the project with this name, or creates it in Projects (marked live)." },
   { name: "ventureId", label: "Business venture", type: "ref", ref: "ventures" },
   { name: "stageId", label: "Pipeline stage", type: "ref", ref: "stages" },
   { name: "opportunityType", label: "Opportunity type", type: "text", placeholder: "FF&E supply, special finishes, branding…" },

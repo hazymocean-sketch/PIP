@@ -51,7 +51,6 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         actions={<>
           <LiveButton projectId={id} live={p.isLive} researching={p.liveResearchStatus === "running" && !!p.liveResearchAt && Date.now() - new Date(p.liveResearchAt).getTime() < 180000} name={p.name} />
           <AgentButton agentKey="research" label="Run Research agent" targetType="project" targetId={id} instruction={`Research ${p.name}`} back={back} />
-          <Link className="btn" href={`/opportunities/new?projectId=${id}`}>Add opportunity</Link>
           <Link className="btn primary" href={`/projects/${id}/edit`}><Icon name="edit" />Edit</Link>
         </>} />
       <Flash sp={sp} />
@@ -103,10 +102,10 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
 
           <DecisionMakers projectId={id} />
 
-          <Card title="Deals (CRM)" sub="Go live opens one deal per linked venture. Close them as won or lost on the CRM page." tight actions={<><Link className="btn sm" href={`/pipeline?project=${id}`}>View pipeline</Link><Link className="btn sm" href={`/opportunities/new?projectId=${id}`}>Add</Link></>}>
+          <Card title="In the CRM" sub="A project enters the CRM when you press Go live: one deal opens per linked venture. Close them as won or lost on the CRM page." tight actions={opps.length ? <Link className="btn sm" href={`/pipeline?project=${id}`}>View pipeline</Link> : null}>
             {opps.length ? <div className="table-wrap"><table className="t"><thead><tr><th>Opportunity</th><th>Venture</th><th>Stage</th><th>Priority</th><th>Next action</th></tr></thead><tbody>
               {opps.map((o) => <tr key={o.id}><td><Link className="title" href={`/opportunities/${o.id}`}>{o.title}</Link></td><td>{o.venture ?? "—"}</td><td>{o.stage ?? C.label(C.COMMERCIAL_STATUS, o.commercial_status)}</td><td><StatusBadge value={o.priority} opts={C.PRIORITY} /></td><td className="small"><Val v={o.next_action} unknown="None set" /></td></tr>)}
-            </tbody></table></div> : <Empty title="No opportunities yet" />}
+            </tbody></table></div> : <Empty title={p.isLive ? "Live — no deals yet" : "Not in the CRM yet"}>{p.isLive ? "Link a venture above and its deal opens automatically." : "Press Go live at the top of this page when you start working this project."}</Empty>}
           </Card>
 
           <SourcesPanel target={{ projectId: id }} back={back} />

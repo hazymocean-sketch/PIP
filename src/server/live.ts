@@ -214,3 +214,43 @@ export async function moveDeal(opportunityId: string, target: string, reason?: s
   await emitEvent("opportunity.status_changed", "opportunity", o.id, { field: "commercialStatus", from: o.commercialStatus, to: v });
   return u;
 }
+
+/**
+ * Keep CRM and Projects in sync: every deal belongs to a project. A deal saved without one gets attached to the
+ * project of the same name (or a new project), with its venture linked; an open deal makes that project live.
+ */
+export async function ensureDealProject(opportunityId: string) {
+  const [o] = await db.select().from(S.opportunities).where(eq(S.opportunities.id, opportunityId));
+  if (!o) return null;
+  const open = !["won", "lost"].includes(o.commercialStatus);
+  let projectId = o.projectId;
+  if (!projectId) {
+    const { existingProjectFor } = await import("./research");
+    let venture: string | null = null;
+    if (o.ventureId) [{ name: venture }] = await db.select({ name: S.ventures.name }).from(S.ventures).where(eq(S.ventures.id, o.ventureId));
+    // "Holm One — MOOG" → "Holm One"
+    let name = o.title.trim();
+    if (venture) for (const v of [venture, venture.replace(/\s*\(.*\)\s*$/, "")]) name = name.replace(new RegExp(`\\s*[—–-]\\s*${v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "i"), "");
+    name = name || o.title;
+    const hit = await existingProjectFor(name);
+    if (hit) projectId = hit.id;
+    else {
+      const [p] = await db.insert(S.projects).values({
+        name, normalizedName: normalizeName(name), status: open ? "active_opportunity" : o.commercialStatus === "won" ? "won" : "lost",
+        isLive: open, liveSince: open ? new Date() : null, isDemo: o.isDemo, researchNotes: `Created from CRM deal “${o.title}”.`,
+      }).returning();
+      projectId = p.id;
+    }
+    await db.update(S.opportunities).set({ projectId, updatedAt: new Date() }).where(eq(S.opportunities.id, o.id));
+  }
+  if (o.ventureId) await db.insert(S.projectVentures).values({ projectId: projectId!, ventureId: o.ventureId }).onConflictDoNothing();
+  if (open && !o.projectId) await db.update(S.projects).set({ isLive: true, liveSince: new Date(), updatedAt: new Date() }).where(and(eq(S.projects.id, projectId!), eq(S.projects.isLive, false)));
+  return projectId;
+}
+
+/** One-off/at-deploy repair: attach every deal that has no project. Returns how many were fixed. */
+export async function syncOrphanDeals() {
+  const orphans = await db.select({ id: S.opportunities.id }).from(S.opportunities).where(sql`${S.opportunities.projectId} is null`);
+  for (const o of orphans) await ensureDealProject(o.id);
+  return orphans.length;
+}
