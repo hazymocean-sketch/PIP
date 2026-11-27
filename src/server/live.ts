@@ -20,6 +20,8 @@ export async function goLive(projectId: string) {
 
   const links = await db.select({ ventureId: S.projectVentures.ventureId, name: S.ventures.name }).from(S.projectVentures)
     .innerJoin(S.ventures, eq(S.ventures.id, S.projectVentures.ventureId)).where(eq(S.projectVentures.projectId, projectId));
+  // Resume deals that were put on hold when the project went off air
+  await db.update(S.opportunities).set({ commercialStatus: "open", updatedAt: new Date() }).where(and(eq(S.opportunities.projectId, projectId), eq(S.opportunities.commercialStatus, "on_hold")));
   const open = await db.select().from(S.opportunities).where(and(eq(S.opportunities.projectId, projectId), notInArray(S.opportunities.commercialStatus, ["won", "lost"])));
   const created: string[] = [];
   const targets: { ventureId: string | null; name: string | null }[] = links.length ? links : (open.length ? [] : [{ ventureId: null, name: null }]);
@@ -39,6 +41,17 @@ export async function goLive(projectId: string) {
 /** Switch "on air" off. Deals stay in the CRM (mark them won/lost there). */
 export async function stopLive(projectId: string) {
   await db.update(S.projects).set({ isLive: false, updatedAt: new Date() }).where(eq(S.projects.id, projectId));
+  // Keep CRM in step: open deals go on hold (Go live resumes them)
+  await db.update(S.opportunities).set({ commercialStatus: "on_hold", updatedAt: new Date() })
+    .where(and(eq(S.opportunities.projectId, projectId), notInArray(S.opportunities.commercialStatus, ["won", "lost", "on_hold"])));
+}
+
+/** Rule: a project with an open deal is live. Repairs any project that has open deals but isn't marked live. */
+export async function syncLiveFlags() {
+  const r = await db.execute(sql`update projects p set is_live = true, live_since = coalesce(p.live_since, now()),
+      status = case when p.status in ('won','lost','cancelled') then p.status else 'active_opportunity' end, updated_at = now()
+    where not p.is_live and exists (select 1 from opportunities o where o.project_id = p.id and o.commercial_status not in ('won','lost','on_hold'))`);
+  return r.rowCount ?? 0;
 }
 
 const ROLE_VALUES = new Set(C.PROJECT_ROLES.map((r) => r.value));
@@ -244,7 +257,7 @@ export async function ensureDealProject(opportunityId: string) {
     await db.update(S.opportunities).set({ projectId, updatedAt: new Date() }).where(eq(S.opportunities.id, o.id));
   }
   if (o.ventureId) await db.insert(S.projectVentures).values({ projectId: projectId!, ventureId: o.ventureId }).onConflictDoNothing();
-  if (open && !o.projectId) await db.update(S.projects).set({ isLive: true, liveSince: new Date(), updatedAt: new Date() }).where(and(eq(S.projects.id, projectId!), eq(S.projects.isLive, false)));
+  if (open && o.commercialStatus !== "on_hold") await db.update(S.projects).set({ isLive: true, liveSince: new Date(), updatedAt: new Date() }).where(and(eq(S.projects.id, projectId!), eq(S.projects.isLive, false)));
   return projectId;
 }
 

@@ -114,7 +114,7 @@ export async function seedBase() {
     await db.insert(agents).values({ ...a, sortOrder: i }).onConflictDoNothing();
   }
   // Upgrade: every CRM deal must belong to a project (older deals created without one)
-  { const { syncOrphanDeals } = await import("./live"); await syncOrphanDeals(); }
+  { const { syncOrphanDeals, syncLiveFlags } = await import("./live"); await syncOrphanDeals(); await syncLiveFlags(); }
 
   // Upgrade: Lusha is pipeline/execution only — remove it from the Research agent (intelligence layer).
   const [research] = await db.select().from(agents).where(eq(agents.key, "research"));

@@ -87,3 +87,35 @@ describe("CRM ↔ Projects sync", () => {
     expect(after.projectId).toBeTruthy();
   });
 });
+
+describe("Open deal = live project", () => {
+  it("repairs a project that has an open deal but isn't live", async () => {
+    const { syncLiveFlags } = await import("@/server/live");
+    const p = await createRecord("projects", { name: "Holm One Sync Test" });
+    await db.insert(S.opportunities).values({ title: "Holm One Sync Test — Calibro", projectId: p.id });
+    expect((await db.select().from(S.projects).where(eq(S.projects.id, p.id)))[0].isLive).toBe(false);
+    expect(await syncLiveFlags()).toBeGreaterThanOrEqual(1);
+    expect((await db.select().from(S.projects).where(eq(S.projects.id, p.id)))[0].isLive).toBe(true);
+  });
+  it("off air puts open deals on hold; Go live resumes them", async () => {
+    const { goLive, stopLive } = await import("@/server/live");
+    const [v] = await db.select().from(S.ventures).orderBy(S.ventures.sortOrder).limit(1);
+    const p = await createRecord("projects", { name: "Off Air Test Tower" });
+    await db.insert(S.projectVentures).values({ projectId: p.id, ventureId: v.id });
+    await goLive(p.id);
+    await stopLive(p.id);
+    let [d] = await db.select().from(S.opportunities).where(eq(S.opportunities.projectId, p.id));
+    expect(d.commercialStatus).toBe("on_hold");
+    await goLive(p.id);
+    [d] = await db.select().from(S.opportunities).where(eq(S.opportunities.projectId, p.id));
+    expect(d.commercialStatus).toBe("open");
+    expect((await db.select().from(S.opportunities).where(eq(S.opportunities.projectId, p.id))).length).toBe(1);
+  });
+  it("editing a deal on a non-live project marks the project live", async () => {
+    const { updateRecord } = await import("@/server/entities");
+    const p = await createRecord("projects", { name: "Edit Live Test Mall" });
+    const [o] = await db.insert(S.opportunities).values({ title: "Edit Live Test Mall deal", projectId: p.id }).returning();
+    await updateRecord("opportunities", o.id, { title: o.title, projectId: p.id, commercialStatus: "open" } as any);
+    expect((await db.select().from(S.projects).where(eq(S.projects.id, p.id)))[0].isLive).toBe(true);
+  });
+});

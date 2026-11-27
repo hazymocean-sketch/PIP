@@ -112,7 +112,7 @@ export async function updateRecord(key: EntityKey, id: string, values: Record<st
       }
     }
   }
-  if (key === "opportunities" && !(row as any).projectId) { const { ensureDealProject } = await import("./live"); await ensureDealProject(id); }
+  if (key === "opportunities") { const { ensureDealProject } = await import("./live"); await ensureDealProject(id); } // keeps project + live flag in sync
   return row;
 }
 

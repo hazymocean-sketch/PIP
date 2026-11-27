@@ -11,7 +11,7 @@ export function LiveButton({ projectId, live, researching, name }: { projectId: 
   async function click() {
     if (busy) return;
     if (live) {
-      if (!window.confirm(`Take “${name}” off air? Its deals stay in the CRM.`)) return;
+      if (!window.confirm(`Take “${name}” off air? Its open deals are put on hold in the CRM (Go live resumes them).`)) return;
       setBusy("off"); await post("live", { on: false }); setBusy(null); router.refresh(); return;
     }
     setBusy("live");
